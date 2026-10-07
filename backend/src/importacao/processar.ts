@@ -1,15 +1,36 @@
 import { estaNoSlot, type DadosConsulta } from '../models/consulta';
-import { COLUNAS_CSV, type Descarte, type MotivoDescarte, type TipoCorrecao } from '../models/importacao';
+import {
+  COLUNAS_CSV,
+  type Descarte,
+  type MotivoDescarte,
+  type SlotDuplo,
+  type TipoCorrecao,
+  type TotaisImportacao,
+} from '../models/importacao';
+import type { DadosMedico } from '../models/medico';
+import type { DadosPaciente } from '../models/paciente';
 import type { LinhaCsv, MedicoArquivo } from './ler-arquivos';
-import { lerDataHora, normalizarStatus, normalizarTelefone, normalizarTipo } from './normalizar';
+import {
+  escolherNome,
+  lerDataHora,
+  limparNome,
+  normalizarStatus,
+  normalizarTelefone,
+  normalizarTipo,
+} from './normalizar';
 
 export type { LinhaCsv } from './ler-arquivos';
 
 export interface ResultadoProcessamento {
   dataReferencia: Date | null; // maior data_agendamento legível (data da exportação)
+  medicos: DadosMedico[];
+  pacientes: DadosPaciente[]; // na ordem em que aparecem no arquivo
   consultas: DadosConsulta[]; // na ordem do arquivo
   descartes: Descarte[]; // em ordem de linha
+  totais: TotaisImportacao;
+  descartesPorMotivo: Partial<Record<MotivoDescarte, number>>;
   correcoesPorTipo: Partial<Record<TipoCorrecao, number>>;
+  slotsDuplos: SlotDuplo[]; // slots do médico com 2+ consultas ativas (aviso)
 }
 
 // Linha que passou por todas as regras: vira consulta, com as correções aplicadas a ela.
@@ -56,20 +77,99 @@ export function processar(linhas: LinhaCsv[], medicos: MedicoArquivo[]): Resulta
     }
   }
 
+  // 6. Pacientes (só de linhas aprovadas); marca nome_padronizado nas linhas com outra grafia.
+  const pacientes = montarPacientes(aprovadas);
+
+  // 7. Avisos: slots com duas ou mais consultas ativas.
+  const slotsDuplos = encontrarSlotsDuplos(aprovadas);
+
+  // 8. Totais e contagens.
+  descartes.sort((a, b) => a.linha - b.linha);
   const correcoesPorTipo: Partial<Record<TipoCorrecao, number>> = {};
   for (const { correcoes } of aprovadas) {
     for (const tipo of correcoes) {
       correcoesPorTipo[tipo] = (correcoesPorTipo[tipo] ?? 0) + 1;
     }
   }
+  const descartesPorMotivo: Partial<Record<MotivoDescarte, number>> = {};
+  for (const { motivo } of descartes) {
+    descartesPorMotivo[motivo] = (descartesPorMotivo[motivo] ?? 0) + 1;
+  }
 
-  descartes.sort((a, b) => a.linha - b.linha);
   return {
     dataReferencia,
+    medicos: medicos.map(({ id, nome, especialidade, grade }) => ({ _id: id, nome, especialidade, grade })),
+    pacientes,
     consultas: aprovadas.map((aprovada) => aprovada.consulta),
     descartes,
+    totais: {
+      lidas: linhas.length,
+      importadas: aprovadas.length,
+      corrigidas: aprovadas.filter((aprovada) => aprovada.correcoes.length > 0).length,
+      descartadas: descartes.length,
+      medicos: medicos.length,
+      pacientes: pacientes.length,
+    },
+    descartesPorMotivo,
     correcoesPorTipo,
+    slotsDuplos,
   };
+}
+
+// Um paciente por paciente_id. Nome: grafia escolhida por escolherNome.
+// Telefone: o da consulta mais recente que tem telefone válido.
+function montarPacientes(aprovadas: LinhaAprovada[]): DadosPaciente[] {
+  const porPaciente = new Map<string, LinhaAprovada[]>();
+  for (const aprovada of aprovadas) {
+    const id = aprovada.consulta.pacienteId;
+    porPaciente.set(id, [...(porPaciente.get(id) ?? []), aprovada]);
+  }
+
+  const pacientes: DadosPaciente[] = [];
+  for (const [id, linhasDoPaciente] of porPaciente) {
+    const nome = escolherNome(
+      linhasDoPaciente.map(({ linha }) => ({ nome: limparNome(linha.paciente_nome), linha: linha.linha })),
+    );
+    for (const aprovada of linhasDoPaciente) {
+      if (aprovada.linha.paciente_nome !== nome) {
+        aprovada.correcoes.push('nome_padronizado');
+      }
+    }
+
+    // Da consulta mais recente para a mais antiga; no mesmo horário, a linha mais abaixo no arquivo.
+    const maisRecentes = [...linhasDoPaciente].sort(
+      (a, b) => b.consulta.inicio.getTime() - a.consulta.inicio.getTime() || b.linha.linha - a.linha.linha,
+    );
+    let telefone: string | null = null;
+    for (const { linha } of maisRecentes) {
+      telefone = normalizarTelefone(linha.paciente_telefone).telefone;
+      if (telefone) {
+        break;
+      }
+    }
+
+    pacientes.push({ _id: id, nome, telefone });
+  }
+  return pacientes;
+}
+
+// Slots (médico + horário) com duas ou mais consultas ativas (não canceladas).
+// Os registros são verdadeiros (encaixe de paciente), então entram e viram aviso no relatório.
+function encontrarSlotsDuplos(aprovadas: LinhaAprovada[]): SlotDuplo[] {
+  const porSlot = new Map<string, SlotDuplo>();
+  for (const { consulta } of aprovadas) {
+    if (consulta.status === 'cancelada_paciente' || consulta.status === 'cancelada_clinica') {
+      continue;
+    }
+    const chave = `${consulta.medicoId}|${consulta.inicio.toISOString()}`;
+    const slot = porSlot.get(chave) ?? { medicoId: consulta.medicoId, inicio: consulta.inicio, codigos: [] };
+    slot.codigos.push(consulta.codigoLegado ?? '');
+    porSlot.set(chave, slot);
+  }
+
+  return [...porSlot.values()]
+    .filter((slot) => slot.codigos.length > 1)
+    .sort((a, b) => a.inicio.getTime() - b.inicio.getTime() || a.medicoId.localeCompare(b.medicoId));
 }
 
 function calcularDataReferencia(linhas: LinhaCsv[]): Date | null {
