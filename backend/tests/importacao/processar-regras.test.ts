@@ -116,6 +116,22 @@ describe('correções e consultas montadas', () => {
     expect(resultado.correcoesPorTipo).toEqual({ data_agendamento_invalida: 1 });
   });
 
+  it('marcação no mesmo instante da consulta não é posterior: entra com a data de marcação', () => {
+    const resultado = processar(
+      [
+        linha(2, { data_agendamento: '2026-09-21 08:00', data_consulta: '2026-09-21 08:00', status: 'realizada' }),
+        REFERENCIA,
+      ],
+      MEDICOS,
+    );
+
+    expect(motivos(resultado)).toEqual({});
+    expect(resultado.consultas.find((c) => c.codigoLegado === 'AG00002')?.marcadaEm).toEqual(
+      new Date('2026-09-21T11:00:00Z'),
+    );
+    expect(resultado.correcoesPorTipo).toEqual({});
+  });
+
   it('consulta cancelada entra com a data do cancelamento vazia', () => {
     const resultado = processar([linha(2, { status: 'cancelada_paciente' })], MEDICOS);
 

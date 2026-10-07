@@ -8,11 +8,18 @@ import {
   importarSeNecessario,
   marcarInterrompidas,
 } from '../../src/importacao/executar';
+import { gravarDados } from '../../src/importacao/gravar';
 import { Consulta } from '../../src/models/consulta';
 import { Importacao, type DadosImportacao } from '../../src/models/importacao';
 import { Medico } from '../../src/models/medico';
 import { Paciente } from '../../src/models/paciente';
 import { conectarBancoDeTeste, desconectar, limparBanco } from '../helpers/mongo';
+
+// gravarDados roda de verdade; um teste troca o resultado por uma falha para simular erro na gravação.
+vi.mock('../../src/importacao/gravar', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../src/importacao/gravar')>();
+  return { gravarDados: vi.fn(original.gravarDados) };
+});
 
 const MEDICOS_JSON = JSON.stringify([
   {
@@ -120,6 +127,22 @@ describe('executarImportacao', () => {
     expect(await Paciente.countDocuments()).toBe(1);
   });
 
+  it('escreve no terminal o resumo com a situação, os totais e a contagem por motivo', async () => {
+    await executarImportacao({ origem: 'manual', dataDir });
+
+    const resumo = vi
+      .mocked(console.log)
+      .mock.calls.map((args) => args.join(' '))
+      .join('\n');
+    expect(resumo).toContain('Importação concluída');
+    expect(resumo).toContain('Lidas: 4');
+    expect(resumo).toContain('Importadas: 2');
+    expect(resumo).toContain('Corrigidas: 1');
+    expect(resumo).toContain('Descartadas: 2');
+    expect(resumo).toContain('duplicada: 1');
+    expect(resumo).toContain('fora_da_grade: 1');
+  });
+
   it('com o medicos.json ausente termina falhou com a mensagem e não mexe nos dados', async () => {
     await executarImportacao({ origem: 'automatica', dataDir });
     const antes = await dadosDoBanco();
@@ -131,6 +154,21 @@ describe('executarImportacao', () => {
     expect(salva?.situacao).toBe('falhou');
     expect(salva?.erro).toBe(`Não foi possível ler o arquivo ${path.join(dataDir, 'medicos.json')}`);
     expect(salva?.finalizadaEm).toBeInstanceOf(Date);
+    expect(await dadosDoBanco()).toEqual(antes);
+  });
+
+  it('com falha na gravação termina falhou com a mensagem, sem sobrar em_andamento e sem mexer nos dados', async () => {
+    await executarImportacao({ origem: 'automatica', dataDir });
+    const antes = await dadosDoBanco();
+    vi.mocked(gravarDados).mockRejectedValueOnce(new Error('Falha ao gravar'));
+
+    const importacao = await executarImportacao({ origem: 'manual', dataDir });
+
+    const salva = await Importacao.findById(importacao._id).lean();
+    expect(salva?.situacao).toBe('falhou');
+    expect(salva?.erro).toBe('Falha ao gravar');
+    expect(salva?.finalizadaEm).toBeInstanceOf(Date);
+    expect(await Importacao.countDocuments({ situacao: 'em_andamento' })).toBe(0);
     expect(await dadosDoBanco()).toEqual(antes);
   });
 
