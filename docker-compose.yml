@@ -1,15 +1,23 @@
 services:
   mongo:
     image: mongo:7.0.43
+    # Replica set de um nó: o MongoDB só permite transações em replica set (AD-001).
+    command: ["--replSet", "rs0", "--bind_ip_all"]
     ports:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
     healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      # Na primeira vez inicia o replica set; fica healthy quando o nó vira primário.
+      test:
+        - CMD
+        - mongosh
+        - --quiet
+        - --eval
+        - "try { rs.status() } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo:27017' }] }) }; quit(db.hello().isWritablePrimary ? 0 : 1)"
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
 
   backend:
     build: ./backend
@@ -18,7 +26,9 @@ services:
       - "3000:3000"
     environment:
       PORT: 3000
-      MONGODB_URI: mongodb://mongo:27017/clinica
+      MONGODB_URI: mongodb://mongo:27017/clinica?replicaSet=rs0
+      MONGODB_URI_TEST: mongodb://mongo:27017/clinica_test?replicaSet=rs0
+      DATA_DIR: /data
     volumes:
       - ./backend:/app
       - /app/node_modules # mantém o node_modules instalado na imagem
