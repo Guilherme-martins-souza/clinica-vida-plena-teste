@@ -7,7 +7,9 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "lint": "oxlint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "express": "^5.2.1",
@@ -19,6 +21,7 @@
     "@types/node": "^24.19.1",
     "@types/supertest": "^7.2.1",
     "oxlint": "^1.87.0",
+    "prettier": "^3.9.9",
     "supertest": "^7.3.1",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
