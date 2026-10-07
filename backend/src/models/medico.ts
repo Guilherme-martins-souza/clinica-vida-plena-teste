@@ -23,21 +23,17 @@ const horarioSchema = new Schema<HorarioGrade>(
   {
     dia: { type: String, enum: DIAS_SEMANA, required: true },
     inicio: { type: String, required: true, match: HORA_HH_MM },
-    fim: {
-      type: String,
-      required: true,
-      match: HORA_HH_MM,
-      validate: {
-        // Como as horas têm sempre dois dígitos, comparar o texto compara o horário.
-        validator(this: HorarioGrade, fim: string) {
-          return this.inicio < fim;
-        },
-        message: 'O fim do horário precisa ser depois do início',
-      },
-    },
+    fim: { type: String, required: true, match: HORA_HH_MM },
   },
   { _id: false },
 );
+
+// Como as horas têm sempre dois dígitos, comparar o texto compara o horário.
+horarioSchema.pre('validate', function () {
+  if (this.inicio && this.fim && this.inicio >= this.fim) {
+    this.invalidate('fim', 'O fim do horário precisa ser depois do início');
+  }
+});
 
 const medicoSchema = new Schema<DadosMedico>({
   _id: { type: String, required: true },
