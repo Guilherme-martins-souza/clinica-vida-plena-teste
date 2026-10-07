@@ -12,6 +12,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "csv-parse": "7.0.2",
     "express": "^5.2.1",
     "mongoose": "^9.11.0",
     "zod": "^4.6.5"
