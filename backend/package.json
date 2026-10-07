@@ -8,6 +8,7 @@
     "start": "node dist/server.js",
     "lint": "oxlint",
     "test": "vitest run",
+    "import": "tsx src/importacao/cli.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
