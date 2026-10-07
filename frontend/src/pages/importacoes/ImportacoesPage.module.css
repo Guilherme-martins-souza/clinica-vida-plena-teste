@@ -1,0 +1,8 @@
+/* A linha inteira abre o detalhe; o link da data é o caminho para teclado e leitor de tela. */
+.row {
+  cursor: pointer;
+}
+
+.numero {
+  text-align: right;
+}

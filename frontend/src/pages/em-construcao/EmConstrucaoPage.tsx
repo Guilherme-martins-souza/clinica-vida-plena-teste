@@ -33,16 +33,3 @@ export function MedicosPage() {
     />
   )
 }
-
-export function ImportacoesPage() {
-  return (
-    <EmConstrucaoPage
-      description={
-        <>
-          A tela de importações ainda não está disponível. Por enquanto, os agendamentos vêm do arquivo{' '}
-          <Code>agendamentos.csv</Code>.
-        </>
-      }
-    />
-  )
-}

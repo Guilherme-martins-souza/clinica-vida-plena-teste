@@ -63,3 +63,8 @@ export function formatTime(date: Date): string {
 export function formatDateRange(from: Date, to: Date): string {
   return `${formatDate(from)} – ${formatDate(to)}`
 }
+
+/** "07 out 2026, 19:59" */
+export function formatDateTime(date: Date): string {
+  return `${formatDate(date)}, ${formatTime(date)}`
+}

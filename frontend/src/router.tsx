@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 import { AppShellLayout } from './layout/AppShellLayout'
-import { ImportacoesPage, MedicosPage } from './pages/em-construcao/EmConstrucaoPage'
+import { MedicosPage } from './pages/em-construcao/EmConstrucaoPage'
+import { ImportacoesPage } from './pages/importacoes/ImportacoesPage'
 import { IndicadoresPage } from './pages/indicadores/IndicadoresPage'
 
 // Todas as telas ficam dentro do AppShellLayout, que renderiza a rota filha no <Outlet />.
