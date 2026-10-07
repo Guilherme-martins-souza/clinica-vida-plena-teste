@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+*.log
+.env
+
+# Material original do desafio (PDF e dados), fica fora do repositório
+teste-tecnico DEV jr ACS/
+
+# Fora do repositório por enquanto
+docs/
+.claude/

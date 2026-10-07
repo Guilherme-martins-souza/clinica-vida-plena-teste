@@ -1,0 +1,44 @@
+services:
+  mongo:
+    image: mongo:7.0.43
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    init: true
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      MONGODB_URI: mongodb://mongo:27017/clinica
+    volumes:
+      - ./backend:/app
+      - /app/node_modules # mantém o node_modules instalado na imagem
+      - ./data:/data
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    init: true
+    ports:
+      - "5173:5173"
+    environment:
+      API_PROXY_TARGET: http://backend:3000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # mantém o node_modules instalado na imagem
+    depends_on:
+      - backend
+
+volumes:
+  mongo-data:
