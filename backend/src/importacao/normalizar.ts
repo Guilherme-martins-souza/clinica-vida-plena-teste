@@ -129,3 +129,59 @@ export function normalizarTipo(texto: string): { tipo: TipoAtendimento; corrigid
   }
   return { tipo: chave, corrigido: texto !== chave };
 }
+
+// Telefone só com dígitos: DDD + número (10 ou 11 dígitos), sem o +55.
+// Vazio continua vazio; o que não chega a um telefone válido fica vazio e marcado como inválido.
+export function normalizarTelefone(texto: string): { telefone: string | null; invalido: boolean } {
+  if (texto.trim() === '') {
+    return { telefone: null, invalido: false };
+  }
+
+  let digitos = texto.replace(/\D/g, '');
+  // Com o código do país (55) na frente, o número tem 12 ou 13 dígitos.
+  if (digitos.startsWith('55') && (digitos.length === 12 || digitos.length === 13)) {
+    digitos = digitos.slice(2);
+  }
+
+  if (digitos.length === 10 || digitos.length === 11) {
+    return { telefone: digitos, invalido: false };
+  }
+  return { telefone: null, invalido: true };
+}
+
+// Remove espaços das pontas e espaços repetidos no meio.
+export function limparNome(texto: string): string {
+  return texto.trim().replace(/\s+/g, ' ');
+}
+
+function todaMaiuscula(nome: string): boolean {
+  return nome === nome.toUpperCase() && nome !== nome.toLowerCase();
+}
+
+// Escolhe a grafia do nome do paciente: a mais frequente; no empate, a que não está toda em
+// maiúsculas; depois, a que aparece primeiro no arquivo (menor número de linha).
+export function escolherNome(grafias: { nome: string; linha: number }[]): string {
+  const porNome = new Map<string, { vezes: number; primeiraLinha: number }>();
+  for (const { nome, linha } of grafias) {
+    const atual = porNome.get(nome);
+    if (atual) {
+      atual.vezes += 1;
+      atual.primeiraLinha = Math.min(atual.primeiraLinha, linha);
+    } else {
+      porNome.set(nome, { vezes: 1, primeiraLinha: linha });
+    }
+  }
+
+  const candidatos = [...porNome.entries()].map(([nome, dados]) => ({ nome, ...dados }));
+  candidatos.sort((a, b) => {
+    if (a.vezes !== b.vezes) {
+      return b.vezes - a.vezes;
+    }
+    if (todaMaiuscula(a.nome) !== todaMaiuscula(b.nome)) {
+      return todaMaiuscula(a.nome) ? 1 : -1;
+    }
+    return a.primeiraLinha - b.primeiraLinha;
+  });
+
+  return candidatos[0]?.nome ?? '';
+}
