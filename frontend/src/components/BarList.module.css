@@ -109,10 +109,18 @@
   vertical-align: -2px;
 }
 
+/* Celular: o nome ocupa a linha de cima inteira (sem cortar), barra e valor ficam embaixo. */
 @media (max-width: 45em) {
   .row,
   .bars[data-compact] .row {
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 3.25rem;
+    grid-template-columns: minmax(0, 1fr) 3.25rem;
+    row-gap: 0.375rem;
+    padding-block: 0.5rem;
+  }
+
+  .name {
+    grid-column: 1 / -1;
+    white-space: normal;
   }
 
   .count {

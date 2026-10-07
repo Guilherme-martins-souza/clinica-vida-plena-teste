@@ -8,6 +8,11 @@
   overflow: hidden auto;
 }
 
+/* Celular: o menu aberto fica acima do fundo escurecido. */
+.navbar[data-overlay] {
+  z-index: calc(var(--app-shell-navbar-z-index) + 2);
+}
+
 .brand {
   display: flex;
   align-items: center;
@@ -114,6 +119,13 @@
   padding-right: 1.5rem;
 }
 
+/* Logo na barra superior (só no celular), que também abre o menu. */
+.headerLogo {
+  display: flex;
+  align-items: center;
+  border-radius: var(--mantine-radius-sm);
+}
+
 .iconButton {
   color: var(--ink);
 }
@@ -133,11 +145,15 @@
 }
 
 /* ---------- Conteúdo ---------- */
+/* Coluna: o conteúdo cresce e o rodapé fica no fim da tela mesmo em páginas curtas. */
 .main {
+  display: flex;
+  flex-direction: column;
   background: var(--bg);
 }
 
 .content {
+  flex: 1;
   width: 100%;
   max-width: var(--content-max);
   margin: 0 auto;
@@ -147,9 +163,29 @@
   gap: 1.5rem;
 }
 
+/* ---------- Rodapé ---------- */
+.footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--line);
+  color: var(--ink-muted);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  text-align: center;
+}
+
 @media (max-width: 45em) {
+  /* O Mantine abre o menu com a largura toda da tela no celular; aqui ele fica com a largura normal. */
+  .shell .navbar {
+    width: var(--sidebar-width);
+  }
+
   .headerInner {
     padding-right: 1rem;
+  }
+
+  /* No celular a trilha não aparece: o título da página já diz onde se está. */
+  .crumbs {
+    display: none;
   }
 
   .content {
