@@ -44,9 +44,14 @@ function dataHoraNoNome(data: Date): string {
   return `${dia}-${hora}`;
 }
 
+// Nome base dos arquivos de uma importação: "importacao-AAAAMMDD-HHmmss" (início, horário de São Paulo).
+export function nomeDoRelatorio(iniciadaEm: Date): string {
+  return `importacao-${dataHoraNoNome(iniciadaEm)}`;
+}
+
 // Grava o relatório completo (JSON) e as linhas descartadas (CSV) na pasta, criando-a se preciso.
 export async function salvarArquivos(importacao: DadosImportacao, dir: string): Promise<{ json: string; csv: string }> {
-  const base = `importacao-${dataHoraNoNome(importacao.iniciadaEm)}`;
+  const base = nomeDoRelatorio(importacao.iniciadaEm);
   const arquivos = {
     json: path.join(dir, `${base}.json`),
     csv: path.join(dir, `${base}-descartes.csv`),
