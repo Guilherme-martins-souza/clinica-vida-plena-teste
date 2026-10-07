@@ -1,0 +1,11 @@
+.motivo {
+  width: 17.5rem;
+}
+
+@media (max-width: 45em) {
+  .motivo,
+  .acoes,
+  .acoes > * {
+    width: 100%;
+  }
+}
