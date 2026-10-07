@@ -1,0 +1,13 @@
+.badge {
+  text-transform: none;
+  font-weight: 600;
+  letter-spacing: normal;
+}
+
+.dot {
+  display: block;
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 50%;
+  background: currentColor;
+}
