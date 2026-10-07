@@ -5,6 +5,10 @@ const MONGODB_URI_REQUIRED = 'obrigatória (ex.: mongodb://localhost:27017/clini
 const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   MONGODB_URI: z.string({ error: MONGODB_URI_REQUIRED }).min(1, MONGODB_URI_REQUIRED),
+  // Banco usado pelos testes que precisam do MongoDB; cada arquivo de teste troca o nome do banco.
+  MONGODB_URI_TEST: z.string().min(1).optional(),
+  // Pasta com medicos.json e agendamentos.csv (montada em /data no container).
+  DATA_DIR: z.string().min(1).default('/data'),
 });
 
 const parsed = envSchema.safeParse(process.env);
