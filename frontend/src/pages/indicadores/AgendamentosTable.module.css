@@ -1,0 +1,86 @@
+.card {
+  overflow: hidden;
+}
+
+.toolbar {
+  padding: 1rem 1.25rem;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.search {
+  width: 13.75rem;
+}
+
+.select {
+  width: 12rem;
+}
+
+.table th {
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+  border-top: 1px solid var(--line);
+}
+
+.table td {
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.table th:first-child,
+.table td:first-child {
+  padding-left: 1.25rem;
+}
+
+.table th:last-child,
+.table td:last-child {
+  padding-right: 1.25rem;
+}
+
+.table td small {
+  display: block;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--ink-muted);
+}
+
+.table tbody tr:hover {
+  background: var(--bg);
+}
+
+.id {
+  font-family: var(--mantine-font-family-monospace);
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.sorted {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 600;
+}
+
+.foot {
+  padding: 0.75rem 1.25rem;
+  color: var(--ink-muted);
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 45em) {
+  .filters,
+  .search,
+  .select {
+    width: 100%;
+  }
+
+  .toolbar,
+  .foot {
+    padding-inline: 1rem;
+  }
+}

@@ -7,6 +7,9 @@ coverage/
 # Material original do desafio (PDF e dados), fica fora do repositório
 teste-tecnico DEV jr ACS/
 
+# Referência de design (Claude Design), usada só para consulta; o código não importa nada daqui
+vida-plena-design-system/
+
 # Fora do repositório por enquanto
 docs/
 .claude/

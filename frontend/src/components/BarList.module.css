@@ -1,0 +1,121 @@
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, 12.5rem) minmax(3.75rem, 1fr) 3.5rem 4.75rem;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2.5rem;
+  padding: 0.25rem 0.5rem;
+  margin: 0 -0.5rem;
+  border-radius: var(--mantine-radius-sm);
+}
+
+.bars[data-compact] .row {
+  grid-template-columns: minmax(5.625rem, 8.125rem) minmax(2.5rem, 1fr) 3.25rem;
+}
+
+.row:hover {
+  background: var(--surface-sunken);
+}
+
+.row:hover .track {
+  background: var(--line);
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.name small {
+  display: block;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--ink-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track {
+  position: relative;
+  height: 0.5rem;
+  border-radius: var(--radius-bar);
+  background: var(--surface-sunken);
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-bar);
+  background: var(--brand);
+}
+
+/* Marca vertical da referência (média da clínica) */
+.track[data-ref]::after {
+  content: '';
+  position: absolute;
+  top: -0.375rem;
+  bottom: -0.375rem;
+  left: var(--ref);
+  width: 2px;
+  border-radius: 1px;
+  background: var(--ink);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.row:hover .track[data-ref]::after {
+  box-shadow: 0 0 0 2px var(--surface-sunken);
+}
+
+.value {
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.count {
+  text-align: right;
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--ink-muted);
+}
+
+.legendRef {
+  display: inline-block;
+  width: 2px;
+  height: 0.75rem;
+  margin-right: 0.375rem;
+  border-radius: 1px;
+  background: var(--ink);
+  vertical-align: -2px;
+}
+
+@media (max-width: 45em) {
+  .row,
+  .bars[data-compact] .row {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 3.25rem;
+  }
+
+  .count {
+    display: none;
+  }
+}

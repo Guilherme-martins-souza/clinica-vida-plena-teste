@@ -1,0 +1,65 @@
+/* Clínica Vida Plena — tokens de cor e de layout.
+   Origem: vida-plena-design-system/design-system/tokens.css.
+   As cores trocam com o tema do Mantine (atributo data-mantine-color-scheme no <html>).
+   Medidas em rem (1rem = 16px) para acompanhar o zoom e o tamanho de fonte do navegador. */
+
+:root,
+[data-mantine-color-scheme='light'] {
+  --bg: #f5f7f8;
+  --surface: #ffffff;
+  --surface-sunken: #eef1f3;
+  --line: #e0e5e9;
+  --line-strong: #7a8690;
+  --ink: #16222c;
+  --ink-muted: #52606b;
+  --brand: #0b6e66;
+  --brand-strong: #08544e;
+  --brand-soft: #dff1ef;
+  --on-brand: #ffffff;
+  --info: #1c5cb8;
+  --info-soft: #e4edfb;
+  --warning: #855000;
+  --warning-soft: #fcefd4;
+  --danger: #b3341a;
+  --danger-soft: #fde8e2;
+  --focus: var(--brand);
+}
+
+[data-mantine-color-scheme='dark'] {
+  --bg: #0e1316;
+  --surface: #161c20;
+  --surface-sunken: #1e262b;
+  --line: #2a343a;
+  --line-strong: #74838e;
+  --ink: #edf1f4;
+  --ink-muted: #a5b1bb;
+  --brand: #56cfc3;
+  --brand-strong: #84ded5;
+  --brand-soft: #12312e;
+  --on-brand: #06211e;
+  --info: #8ab8f7;
+  --info-soft: #172a44;
+  --warning: #f0b95a;
+  --warning-soft: #3a2a0c;
+  --danger: #ff9d88;
+  --danger-soft: #40180f;
+  --focus: var(--brand);
+}
+
+:root {
+  --sidebar-width: 15.5rem; /* 248px */
+  --sidebar-collapsed: 4rem; /* 64px */
+  --topbar-height: 3.5rem; /* 56px */
+  --control-height: 2.25rem; /* 36px */
+  --content-max: 85rem; /* 1360px */
+  --radius-bar: 0.25rem;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
