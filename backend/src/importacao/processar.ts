@@ -1,18 +1,27 @@
-import { COLUNAS_CSV, type Descarte, type MotivoDescarte } from '../models/importacao';
+import { estaNoSlot, type DadosConsulta } from '../models/consulta';
+import { COLUNAS_CSV, type Descarte, type MotivoDescarte, type TipoCorrecao } from '../models/importacao';
 import type { LinhaCsv, MedicoArquivo } from './ler-arquivos';
-import { lerDataHora, normalizarStatus } from './normalizar';
+import { lerDataHora, normalizarStatus, normalizarTelefone, normalizarTipo } from './normalizar';
 
 export type { LinhaCsv } from './ler-arquivos';
 
 export interface ResultadoProcessamento {
   dataReferencia: Date | null; // maior data_agendamento legível (data da exportação)
+  consultas: DadosConsulta[]; // na ordem do arquivo
   descartes: Descarte[]; // em ordem de linha
+  correcoesPorTipo: Partial<Record<TipoCorrecao, number>>;
+}
+
+// Linha que passou por todas as regras: vira consulta, com as correções aplicadas a ela.
+interface LinhaAprovada {
+  linha: LinhaCsv;
+  consulta: DadosConsulta;
+  correcoes: TipoCorrecao[];
 }
 
 // Transforma as linhas do CSV no que deve ser gravado e no relatório.
 // Função pura: não lê arquivo, não acessa banco e não usa o relógio.
 export function processar(linhas: LinhaCsv[], medicos: MedicoArquivo[]): ResultadoProcessamento {
-  void medicos; // usado nas regras por linha
   const descartes: Descarte[] = [];
   const descartar = (linha: LinhaCsv, motivo: MotivoDescarte) => descartes.push(montarDescarte(linha, motivo));
 
@@ -34,10 +43,33 @@ export function processar(linhas: LinhaCsv[], medicos: MedicoArquivo[]): Resulta
 
   // 3. Mesmo id com versões diferentes.
   const seguem = resolverConflitos(unicas, descartar);
-  void seguem; // as regras por linha entram no próximo passo
+
+  // 4 e 5. Regras por linha: a primeira que falhar define o motivo; as outras viram consultas.
+  const medicosPorId = new Map(medicos.map((medico) => [medico.id, medico]));
+  const aprovadas: LinhaAprovada[] = [];
+  for (const linha of seguem) {
+    const avaliacao = avaliarLinha(linha, medicosPorId, dataReferencia);
+    if ('motivo' in avaliacao) {
+      descartar(linha, avaliacao.motivo);
+    } else {
+      aprovadas.push({ linha, ...avaliacao });
+    }
+  }
+
+  const correcoesPorTipo: Partial<Record<TipoCorrecao, number>> = {};
+  for (const { correcoes } of aprovadas) {
+    for (const tipo of correcoes) {
+      correcoesPorTipo[tipo] = (correcoesPorTipo[tipo] ?? 0) + 1;
+    }
+  }
 
   descartes.sort((a, b) => a.linha - b.linha);
-  return { dataReferencia, descartes };
+  return {
+    dataReferencia,
+    consultas: aprovadas.map((aprovada) => aprovada.consulta),
+    descartes,
+    correcoesPorTipo,
+  };
 }
 
 function calcularDataReferencia(linhas: LinhaCsv[]): Date | null {
@@ -129,4 +161,120 @@ function resolverConflitos(
     }
   }
   return seguem;
+}
+
+const CAMPOS_OBRIGATORIOS = [
+  'id',
+  'paciente_id',
+  'paciente_nome',
+  'medico_id',
+  'data_agendamento',
+  'data_consulta',
+] as const;
+
+const DURACAO_SLOT_MINUTOS = 30;
+
+// "07:00" -> 420
+function minutosDoDia(hora: string): number {
+  const [h, m] = hora.split(':').map(Number);
+  return h * 60 + m;
+}
+
+// Aplica as regras na ordem dos motivos. Devolve o motivo do descarte ou a consulta com as correções.
+function avaliarLinha(
+  linha: LinhaCsv,
+  medicosPorId: Map<string, MedicoArquivo>,
+  dataReferencia: Date | null,
+): { motivo: MotivoDescarte } | Omit<LinhaAprovada, 'linha'> {
+  if (CAMPOS_OBRIGATORIOS.some((coluna) => linha[coluna].trim() === '')) {
+    return { motivo: 'campo_obrigatorio' };
+  }
+
+  const marcacao = lerDataHora(linha.data_agendamento);
+  const consulta = lerDataHora(linha.data_consulta);
+  // Se há uma data de marcação legível, a data de referência existe.
+  if (!marcacao || !consulta || !dataReferencia) {
+    return { motivo: 'data_invalida' };
+  }
+
+  const medico = medicosPorId.get(linha.medico_id);
+  if (!medico) {
+    return { motivo: 'medico_desconhecido' };
+  }
+
+  const tipo = normalizarTipo(linha.tipo_atendimento);
+  if (!tipo) {
+    return { motivo: 'tipo_desconhecido' };
+  }
+
+  const status = normalizarStatus(linha.status);
+  if (!status) {
+    return { motivo: 'status_desconhecido' };
+  }
+
+  // "Passado" inclui a própria data de referência.
+  const passada = consulta.instante <= dataReferencia;
+  if (status.status === '' && passada) {
+    return { motivo: 'status_vazio_passado' };
+  }
+
+  if (!estaNoSlot(consulta.instante)) {
+    return { motivo: 'fora_do_slot' };
+  }
+
+  // Dentro da grade: no dia certo, começando no início ou depois, e terminando até o fim.
+  const inicioConsulta = consulta.hora * 60 + consulta.minuto;
+  const dentroDaGrade = medico.grade.some(
+    (horario) =>
+      horario.dia === consulta.diaSemana &&
+      inicioConsulta >= minutosDoDia(horario.inicio) &&
+      inicioConsulta + DURACAO_SLOT_MINUTOS <= minutosDoDia(horario.fim),
+  );
+  if (!dentroDaGrade) {
+    return { motivo: 'fora_da_grade' };
+  }
+
+  if (!passada && (status.status === 'realizada' || status.status === 'falta')) {
+    return { motivo: 'resultado_no_futuro' };
+  }
+  if (passada && (status.status === 'agendada' || status.status === 'confirmada')) {
+    return { motivo: 'passada_sem_resultado' };
+  }
+
+  // A linha entra: junta as correções feitas nela.
+  const correcoes: TipoCorrecao[] = [];
+  if (status.correcao) {
+    correcoes.push(status.correcao);
+  }
+  if (status.status === '') {
+    correcoes.push('status_vazio_futuro');
+  }
+  if (tipo.corrigido) {
+    correcoes.push('tipo_padronizado');
+  }
+  if (marcacao.formatoBr || consulta.formatoBr) {
+    correcoes.push('data_formato');
+  }
+  // Marcação depois da consulta: a data de marcação é desconhecida.
+  const marcacaoInvalida = marcacao.instante > consulta.instante;
+  if (marcacaoInvalida) {
+    correcoes.push('data_agendamento_invalida');
+  }
+  if (normalizarTelefone(linha.paciente_telefone).invalido) {
+    correcoes.push('telefone_invalido');
+  }
+
+  return {
+    consulta: {
+      codigoLegado: linha.id,
+      pacienteId: linha.paciente_id,
+      medicoId: linha.medico_id,
+      tipoAtendimento: tipo.tipo,
+      inicio: consulta.instante,
+      marcadaEm: marcacaoInvalida ? null : marcacao.instante,
+      canceladaEm: null, // o CSV não tem a data do cancelamento
+      status: status.status === '' ? 'agendada' : status.status,
+    },
+    correcoes,
+  };
 }
