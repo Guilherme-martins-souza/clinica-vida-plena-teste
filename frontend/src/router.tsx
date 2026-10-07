@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 import { AppShellLayout } from './layout/AppShellLayout'
 import { MedicosPage } from './pages/em-construcao/EmConstrucaoPage'
+import { ImportacaoDetalhePage } from './pages/importacoes/ImportacaoDetalhePage'
 import { ImportacoesPage } from './pages/importacoes/ImportacoesPage'
 import { IndicadoresPage } from './pages/indicadores/IndicadoresPage'
 
@@ -14,6 +15,7 @@ export const router = createBrowserRouter([
       { path: 'indicadores', element: <IndicadoresPage /> },
       { path: 'medicos', element: <MedicosPage /> },
       { path: 'importacoes', element: <ImportacoesPage /> },
+      { path: 'importacoes/:id', element: <ImportacaoDetalhePage /> },
       { path: '*', element: <Navigate to="/indicadores" replace /> },
     ],
   },

@@ -21,10 +21,12 @@ type BarListProps = {
   reference?: { value: number; label: string }
   /** Variante compacta: esconde a contagem (ela continua no title). */
   compact?: boolean
+  /** Como escrever o valor ao lado da barra. Padrão: taxa em % ("28,1%"). */
+  formatValue?: (value: number) => string
 }
 
-/** Barras horizontais para comparar uma taxa entre categorias. Série única, cor brand. */
-export function BarList({ rows, max, reference, compact = false }: BarListProps) {
+/** Barras horizontais para comparar uma taxa (ou contagem) entre categorias. Série única, cor brand. */
+export function BarList({ rows, max, reference, compact = false, formatValue = formatPercent }: BarListProps) {
   const toPercentOfScale = (v: number) => `${Math.min(100, (v / max) * 100)}%`
 
   return (
@@ -44,7 +46,7 @@ export function BarList({ rows, max, reference, compact = false }: BarListProps)
             >
               <span className={classes.fill} style={{ width: toPercentOfScale(row.value) }} />
             </span>
-            <span className={classes.value}>{formatPercent(row.value)}</span>
+            <span className={classes.value}>{formatValue(row.value)}</span>
             {!compact && <span className={classes.count}>{row.count}</span>}
           </div>
         ))}
