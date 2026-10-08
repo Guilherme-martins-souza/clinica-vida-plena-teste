@@ -17,7 +17,8 @@ import { useState } from 'react'
 import { NavLink as RouterNavLink, Outlet, useLocation } from 'react-router'
 import { findActiveNav, navGroups, type NavGroup } from './navigation'
 import classes from './AppShellLayout.module.css'
-import logoExpandida from '../assets/logo-expandida.png'
+import logoExpandidaClara from '../assets/logo-expandida.png'
+import logoExpandidaEscura from '../assets/logo-expandida-dark.png'
 import logoMinimizada from '../assets/logo-minimizada.png'
 
 const ICON_SIZE = 20
@@ -35,6 +36,8 @@ const ANO_ATUAL = new Date().getFullYear()
 export function AppShellLayout() {
   const location = useLocation()
   const active = findActiveNav(location.pathname)
+  // A logo expandida tem uma versão própria para o tema escuro.
+  const logoExpandida = useComputedColorScheme('light') === 'dark' ? logoExpandidaEscura : logoExpandidaClara
 
   // Preferência de quem usa, guardada no navegador.
   const [collapsedByUser, setCollapsedByUser] = useLocalStorage({ key: 'vp-menu-contraido', defaultValue: false })
