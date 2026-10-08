@@ -1,10 +1,11 @@
 import { Alert, Anchor, Button, Card, EmptyState, Skeleton, Table } from '@mantine/core'
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Eye, FileSpreadsheet } from 'lucide-react'
-import type { MouseEvent } from 'react'
+import { useState, type MouseEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { fetchImportacoes, type ImportacaoResumo } from '../../api/importacoes'
 import { AvisoCard } from '../../components/AvisoCard'
+import { Paginacao } from '../../components/Paginacao'
 import { PageHeader } from '../../components/PageHeader'
 import { formatDateTime, formatInteger } from '../../lib/format'
 import { ORIGEM_LABELS } from '../../lib/importacao'
@@ -17,8 +18,15 @@ function total(valor: number | undefined): string {
   return valor === undefined ? '—' : formatInteger(valor)
 }
 
+const POR_PAGINA = 10
+
 export function ImportacoesPage() {
-  const query = useQuery({ queryKey: ['importacoes'], queryFn: fetchImportacoes })
+  const [pagina, setPagina] = useState(1)
+  const query = useQuery({
+    queryKey: ['importacoes', pagina],
+    queryFn: () => fetchImportacoes(pagina, POR_PAGINA),
+    placeholderData: keepPreviousData, // mantém a página anterior na tela enquanto a próxima carrega
+  })
 
   return (
     <>
@@ -33,7 +41,7 @@ export function ImportacoesPage() {
           {query.error.message}
         </Alert>
       )}
-      {query.isSuccess && query.data.length === 0 && (
+      {query.isSuccess && query.data.total === 0 && (
         <EmptyState
           mx="auto"
           my="xl"
@@ -43,10 +51,15 @@ export function ImportacoesPage() {
           description="A importação dos arquivos de data/ roda sozinha ao subir o sistema. Quando terminar, ela aparece aqui."
         />
       )}
-      {query.isSuccess && query.data.length > 0 && (
+      {query.isSuccess && query.data.total > 0 && (
         <>
           <AvisoCard tom="info">Clique em uma importação para visualizar detalhes.</AvisoCard>
-          <ImportacoesTabela importacoes={query.data} />
+          <ImportacoesTabela
+            importacoes={query.data.itens}
+            pagina={pagina}
+            totalImportacoes={query.data.total}
+            onChangePagina={setPagina}
+          />
         </>
       )}
     </>
@@ -59,7 +72,14 @@ function naoSobeParaALinha(event: MouseEvent) {
   event.stopPropagation()
 }
 
-function ImportacoesTabela({ importacoes }: { importacoes: ImportacaoResumo[] }) {
+type ImportacoesTabelaProps = {
+  importacoes: ImportacaoResumo[]
+  pagina: number
+  totalImportacoes: number
+  onChangePagina: (pagina: number) => void
+}
+
+function ImportacoesTabela({ importacoes, pagina, totalImportacoes, onChangePagina }: ImportacoesTabelaProps) {
   const navigate = useNavigate()
 
   return (
@@ -115,6 +135,7 @@ function ImportacoesTabela({ importacoes }: { importacoes: ImportacaoResumo[] })
           </Table.Tbody>
         </Table>
       </Table.ScrollContainer>
+      <Paginacao pagina={pagina} porPagina={POR_PAGINA} total={totalImportacoes} onChange={onChangePagina} />
     </Card>
   )
 }

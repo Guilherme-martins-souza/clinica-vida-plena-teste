@@ -15,6 +15,7 @@ export const navGroups: NavGroup[] = [
     icon: SlidersHorizontal,
     items: [
       { label: 'Médicos', to: '/medicos' },
+      { label: 'Pacientes', to: '/pacientes' },
       { label: 'Importações', to: '/importacoes' },
     ],
   },

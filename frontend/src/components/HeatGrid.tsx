@@ -5,7 +5,8 @@ type HeatGridProps = {
   /** Rótulo da tabela para leitores de tela. */
   label: string
   columns: string[]
-  rows: { label: string; values: number[] }[]
+  /** Valores de cada linha; null é célula sem dados, que mostra "—" e fica sem cor. */
+  rows: { label: string; values: (number | null)[] }[]
   /** Formata o valor escrito na célula. */
   format: (value: number) => string
   /** Texto do title de cada célula, ex.: "Seg, manhã: 41% de falta". */
@@ -18,7 +19,7 @@ const MAX_MIX = 46
 
 /** Grade de calor para cruzar duas dimensões pequenas (dia da semana × turno). */
 export function HeatGrid({ label, columns, rows, format, describe }: HeatGridProps) {
-  const all = rows.flatMap((r) => r.values)
+  const all = rows.flatMap((r) => r.values).filter((v) => v !== null)
   const min = Math.min(...all)
   const max = Math.max(...all)
   const intensity = (v: number) => (max === min ? MIN_MIX : MIN_MIX + ((v - min) / (max - min)) * (MAX_MIX - MIN_MIX))
@@ -49,10 +50,14 @@ export function HeatGrid({ label, columns, rows, format, describe }: HeatGridPro
               role="cell"
               className={classes.cell}
               // Variável CSS própria: o TypeScript não conhece, por isso o "as CSSProperties".
-              style={{ '--v': intensity(v).toFixed(0) } as CSSProperties}
-              title={describe?.(row.label, columns[i], v)}
+              style={{ '--v': v === null ? 0 : intensity(v).toFixed(0) } as CSSProperties}
+              title={
+                v === null
+                  ? `${columns[i]}, ${row.label.toLowerCase()}: sem consultas concluídas`
+                  : describe?.(row.label, columns[i], v)
+              }
             >
-              {format(v)}
+              {v === null ? '—' : format(v)}
             </span>
           ))}
         </div>

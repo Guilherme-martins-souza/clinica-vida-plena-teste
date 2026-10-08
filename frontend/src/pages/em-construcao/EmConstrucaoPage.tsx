@@ -1,4 +1,4 @@
-import { Button, Code, EmptyState } from '@mantine/core'
+import { Button, EmptyState } from '@mantine/core'
 import { House } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
@@ -18,18 +18,5 @@ export function EmConstrucaoPage({ description }: { description: ReactNode }) {
         Voltar para Indicadores
       </Button>
     </EmptyState>
-  )
-}
-
-export function MedicosPage() {
-  return (
-    <EmConstrucaoPage
-      description={
-        <>
-          O cadastro de médicos ainda não está disponível. Por enquanto, os médicos vêm do arquivo{' '}
-          <Code>medicos.json</Code>.
-        </>
-      }
-    />
   )
 }

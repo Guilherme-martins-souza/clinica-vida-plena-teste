@@ -1,7 +1,16 @@
-import type { Agendamento, AgendamentoStatus, TipoAtendimento } from '../types'
-import { medicosMock } from './indicadores.mock'
+import type { Agendamento, AgendamentoStatus, Medico, TipoAtendimento } from '../types'
 
 // Lista de agendamentos de mentira, gerada de forma fixa (sempre a mesma) para a tabela.
+// Sai quando a tela de Agendamentos passar a usar a API de consultas.
+
+export const medicosMock: Medico[] = [
+  { id: 'MED01', nome: 'Dr. Paulo Mendes', especialidade: 'Cardiologia' },
+  { id: 'MED02', nome: 'Dra. Ana Ribeiro', especialidade: 'Dermatologia' },
+  { id: 'MED03', nome: 'Dr. Carlos Souza', especialidade: 'Ortopedia' },
+  { id: 'MED04', nome: 'Dra. Fernanda Lima', especialidade: 'Pediatria' },
+  { id: 'MED05', nome: 'Dr. Roberto Alves', especialidade: 'Clínica Geral' },
+  { id: 'MED06', nome: 'Dra. Beatriz Costa', especialidade: 'Ginecologia' },
+]
 
 const pacientes = [
   { nome: 'Patrícia Correia Brandão', telefone: '(54) 91234-1342' },

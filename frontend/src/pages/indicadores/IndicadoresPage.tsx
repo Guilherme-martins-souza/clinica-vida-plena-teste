@@ -8,10 +8,9 @@ import { CardHeader } from '../../components/CardHeader'
 import { HeatGrid, HeatGridLegend } from '../../components/HeatGrid'
 import { PageHeader } from '../../components/PageHeader'
 import { PeriodFilter } from '../../components/PeriodFilter'
-import { isPeriodoAtalho, resolvePeriodo, type PeriodoAtalho } from '../../lib/periodo'
+import { lerPeriodoDaUrl, toDataIso } from '../../lib/periodo'
 import { StatCard } from '../../components/StatCard'
 import { formatInteger, formatPercent, formatPointsDelta, rate } from '../../lib/format'
-import { AgendamentosTable } from './AgendamentosTable'
 
 /** Escala única de todas as barras da tela, para que sejam comparáveis entre si. */
 const ESCALA_MAX = 40
@@ -19,14 +18,23 @@ const ESCALA_MAX = 40
 const DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex']
 const DIAS_EXTENSO = ['segunda', 'terça', 'quarta', 'quinta', 'sexta']
 
+/** Taxa de falta em %; null quando o recorte não tem consulta concluída (a tela mostra "—"). */
+function taxaOuNull(c: ContagemFaltas): number | null {
+  return c.concluidas === 0 ? null : rate(c.faltas, c.concluidas)
+}
+
 /** Monta uma linha de barra a partir das contagens de faltas. */
 function toBarRow(label: string, c: ContagemFaltas, sublabel?: string): BarListRow {
   const taxa = rate(c.faltas, c.concluidas)
+  const count = `${formatInteger(c.faltas)} de ${formatInteger(c.concluidas)}`
+  if (c.concluidas === 0) {
+    return { label, sublabel, value: 0, semDados: true, count, description: `${label}: sem consultas concluídas` }
+  }
   return {
     label,
     sublabel,
     value: taxa,
-    count: `${formatInteger(c.faltas)} de ${formatInteger(c.concluidas)}`,
+    count,
     description: `${label}: ${formatPercent(taxa)} — ${formatInteger(c.faltas)} faltas em ${formatInteger(c.concluidas)} consultas concluídas`,
   }
 }
@@ -34,14 +42,12 @@ function toBarRow(label: string, c: ContagemFaltas, sublabel?: string): BarListR
 const byValueDesc = (a: BarListRow, b: BarListRow) => b.value - a.value
 
 export function IndicadoresPage() {
-  // O atalho de período fica na URL (?periodo=3m) para a tela poder ser compartilhada.
+  // O período fica na URL (?periodo=3m ou ?periodo=personalizado&de=…&ate=…) para a tela poder ser compartilhada.
   const [searchParams, setSearchParams] = useSearchParams()
-  const param = searchParams.get('periodo')
-  const atalho: PeriodoAtalho = isPeriodoAtalho(param) ? param : '12m'
-  const periodo = resolvePeriodo(atalho)
+  const { atalho, periodo } = lerPeriodoDaUrl(searchParams)
 
   const query = useQuery({
-    queryKey: ['indicadores', atalho],
+    queryKey: ['indicadores', toDataIso(periodo.de), toDataIso(periodo.ate)],
     queryFn: () => fetchIndicadores(periodo),
   })
 
@@ -50,7 +56,14 @@ export function IndicadoresPage() {
       <PageHeader
         title="Indicadores"
         description="Faltas e comparecimento no período selecionado."
-        actions={<PeriodFilter value={atalho} periodo={periodo} onChange={(v) => setSearchParams({ periodo: v })} />}
+        actions={
+          <PeriodFilter
+            value={atalho}
+            periodo={periodo}
+            onChange={(v) => setSearchParams({ periodo: v })}
+            onChangeIntervalo={(de, ate) => setSearchParams({ periodo: 'personalizado', de, ate })}
+          />
+        }
       />
 
       {query.isPending && <IndicadoresSkeleton />}
@@ -60,8 +73,6 @@ export function IndicadoresPage() {
         </Alert>
       )}
       {query.isSuccess && <IndicadoresConteudo dados={query.data} />}
-
-      <AgendamentosTable periodo={periodo} />
     </>
   )
 }
@@ -70,7 +81,12 @@ function IndicadoresConteudo({ dados }: { dados: Indicadores }) {
   const { totais } = dados
   const concluidas = totais.realizadas + totais.faltas
   const taxaGeral = rate(totais.faltas, concluidas)
-  const variacao = taxaGeral - dados.taxaFaltaPeriodoAnterior
+  const anterior = dados.taxaFaltaPeriodoAnterior
+  // Sem concluídas no período não há taxa; sem concluídas no período anterior não há com o que comparar.
+  const variacao = concluidas > 0 && anterior !== null ? taxaGeral - anterior : null
+  let dicaDaTaxa = 'vs. período anterior'
+  if (concluidas === 0) dicaDaTaxa = 'sem consultas concluídas no período'
+  else if (anterior === null) dicaDaTaxa = 'sem dados do período anterior'
 
   const porMedico = dados.porMedico.map((m) => toBarRow(m.medico.nome, m, m.medico.especialidade)).sort(byValueDesc)
   const porTipo = dados.porTipo
@@ -82,12 +98,14 @@ function IndicadoresConteudo({ dados }: { dados: Indicadores }) {
   // Antecedência tem ordem própria (da menor para a maior), por isso não ordena.
   const porAntecedencia = dados.porAntecedencia.map((a) => toBarRow(a.faixa, a))
 
-  // Célula com a maior taxa, para a frase de leitura da grade.
-  let pior = { turno: dados.diaTurno[0].turno, dia: 0, taxa: -1 }
-  for (const linha of dados.diaTurno) {
-    linha.taxas.forEach((taxa, dia) => {
-      if (taxa > pior.taxa) pior = { turno: linha.turno, dia, taxa }
-    })
+  const diaTurno = dados.diaTurno.map((linha) => ({ label: linha.turno, values: linha.dias.map(taxaOuNull) }))
+
+  // Célula com a maior taxa, para a frase de leitura da grade (ignora as células sem dados).
+  let pior: { turno: string; dia: number; taxa: number } | null = null
+  for (const linha of diaTurno) {
+    for (const [dia, taxa] of linha.values.entries()) {
+      if (taxa !== null && (pior === null || taxa > pior.taxa)) pior = { turno: linha.label, dia, taxa }
+    }
   }
 
   return (
@@ -95,13 +113,17 @@ function IndicadoresConteudo({ dados }: { dados: Indicadores }) {
       <SimpleGrid cols={{ base: 1, xs: 2, md: 4 }} spacing="md">
         <StatCard
           label="Taxa de falta"
-          value={formatPercent(taxaGeral)}
-          hint="vs. período anterior"
-          delta={{
-            text: formatPointsDelta(variacao),
-            tone: variacao <= 0 ? 'good' : 'bad',
-            direction: variacao <= 0 ? 'down' : 'up',
-          }}
+          value={concluidas > 0 ? formatPercent(taxaGeral) : '—'}
+          hint={dicaDaTaxa}
+          delta={
+            variacao === null
+              ? undefined
+              : {
+                  text: formatPointsDelta(variacao),
+                  tone: variacao <= 0 ? 'good' : 'bad',
+                  direction: variacao <= 0 ? 'down' : 'up',
+                }
+          }
         />
         <StatCard
           label="Consultas concluídas"
@@ -125,7 +147,12 @@ function IndicadoresConteudo({ dados }: { dados: Indicadores }) {
         <Grid.Col span={{ base: 12, md: 7 }}>
           <Card component="section" h="100%">
             <CardHeader title="Taxa de falta por médico" note="faltas ÷ consultas concluídas" />
-            <BarList rows={porMedico} max={ESCALA_MAX} reference={{ value: taxaGeral, label: 'Média da clínica' }} />
+            <BarList
+              rows={porMedico}
+              max={ESCALA_MAX}
+              // Sem consultas concluídas não há média para marcar.
+              reference={concluidas > 0 ? { value: taxaGeral, label: 'Média da clínica' } : undefined}
+            />
           </Card>
         </Grid.Col>
         <Grid.Col span={{ base: 12, md: 5 }}>
@@ -134,11 +161,17 @@ function IndicadoresConteudo({ dados }: { dados: Indicadores }) {
             <HeatGrid
               label="Taxa de falta por dia da semana e turno"
               columns={DIAS}
-              rows={dados.diaTurno.map((l) => ({ label: l.turno, values: l.taxas }))}
-              format={(v) => `${v}%`}
-              describe={(turno, dia, v) => `${dia}, ${turno.toLowerCase()}: ${v}% de falta`}
+              rows={diaTurno}
+              format={(v) => `${Math.round(v)}%`}
+              describe={(turno, dia, v) => `${dia}, ${turno.toLowerCase()}: ${formatPercent(v)} de falta`}
             />
-            <HeatGridLegend insight={`Pior horário: ${DIAS_EXTENSO[pior.dia]} de ${pior.turno.toLowerCase()}`} />
+            <HeatGridLegend
+              insight={
+                pior === null
+                  ? 'Sem consultas concluídas no período'
+                  : `Pior horário: ${DIAS_EXTENSO[pior.dia]} de ${pior.turno.toLowerCase()}`
+              }
+            />
           </Card>
         </Grid.Col>
       </Grid>

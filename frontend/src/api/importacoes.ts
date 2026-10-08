@@ -162,11 +162,17 @@ function toDetalhe(item: unknown): ImportacaoDetalhe {
   }
 }
 
-/** Importações da mais recente para a mais antiga (a API já devolve nessa ordem). */
-export async function fetchImportacoes(): Promise<ImportacaoResumo[]> {
-  const corpo = await getJson('/api/importacoes')
-  if (!Array.isArray(corpo)) return formatoInvalido()
-  return corpo.map(toResumo)
+/** Uma página das importações, da mais recente para a mais antiga (a API já devolve nessa ordem). */
+export async function fetchImportacoes(pagina: number, porPagina: number): Promise<Pagina<ImportacaoResumo>> {
+  const params = new URLSearchParams({ pagina: String(pagina), porPagina: String(porPagina) })
+  const corpo = await getJson(`/api/importacoes?${params}`)
+  if (!isJsonObject(corpo) || !Array.isArray(corpo.itens)) return formatoInvalido()
+  return {
+    itens: corpo.itens.map(toResumo),
+    total: toNumber(corpo.total),
+    pagina: toNumber(corpo.pagina),
+    porPagina: toNumber(corpo.porPagina),
+  }
 }
 
 export async function fetchImportacao(id: string): Promise<ImportacaoDetalhe> {

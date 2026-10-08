@@ -1,5 +1,5 @@
-// Formato dos dados que a tela espera receber da API.
-// Por enquanto vêm de mocks (src/api/mocks); quando o backend existir, só a busca muda.
+// Formato dos dados que as telas recebem da API.
+// A tabela de agendamentos ainda usa o mock de src/api/mocks até a tela de Agendamentos usar a API.
 
 export type AgendamentoStatus =
   'agendada' | 'confirmada' | 'realizada' | 'falta' | 'cancelada_paciente' | 'cancelada_clinica'
@@ -20,8 +20,12 @@ export type ContagemFaltas = {
 
 export type Periodo = { de: Date; ate: Date }
 
+export type Turno = 'Manhã' | 'Tarde'
+
+/** Resposta de GET /api/indicadores. */
 export type Indicadores = {
-  periodo: Periodo
+  /** Dias pedidos, em AAAA-MM-DD. */
+  periodo: { de: string; ate: string }
   totais: {
     realizadas: number
     faltas: number
@@ -30,11 +34,11 @@ export type Indicadores = {
     proximas: number
     proximasSemConfirmacao: number
   }
-  /** Taxa de falta do período anterior, de mesmo tamanho, para a variação. */
-  taxaFaltaPeriodoAnterior: number
+  /** Taxa de falta (%) do período anterior, de mesmo tamanho; null quando ele não tem consulta concluída. */
+  taxaFaltaPeriodoAnterior: number | null
   porMedico: (ContagemFaltas & { medico: Medico })[]
-  /** Taxa de falta (%) por turno × dia da semana (seg a sex). */
-  diaTurno: { turno: 'Manhã' | 'Tarde'; taxas: number[] }[]
+  /** Contagens por turno × dia da semana (seg a sex, nessa ordem). */
+  diaTurno: { turno: Turno; dias: ContagemFaltas[] }[]
   porTipo: (ContagemFaltas & { tipo: TipoAtendimento })[]
   porPrimeiraConsulta: (ContagemFaltas & { primeiraConsulta: boolean })[]
   porAntecedencia: (ContagemFaltas & { faixa: string })[]

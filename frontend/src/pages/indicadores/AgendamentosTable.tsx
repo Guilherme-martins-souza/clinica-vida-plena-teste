@@ -1,11 +1,12 @@
-import { Button, Card, Group, SegmentedControl, Select, Table, Text, TextInput, Title } from '@mantine/core'
+import { Card, Group, SegmentedControl, Select, Table, Text, TextInput, Title } from '@mantine/core'
 import { useDebouncedValue } from '@mantine/hooks'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { ArrowDown, ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { ArrowDown, Search } from 'lucide-react'
 import { useState } from 'react'
 import { fetchAgendamentos, type AgendamentosQuando } from '../../api/indicadores'
-import { medicosMock } from '../../api/mocks/indicadores.mock'
+import { medicosMock } from '../../api/mocks/agendamentos.mock'
 import type { AgendamentoStatus, Periodo, TipoAtendimento } from '../../api/types'
+import { Paginacao } from '../../components/Paginacao'
 import { StatusBadge } from '../../components/StatusBadge'
 import { formatDate, formatInteger, formatTime } from '../../lib/format'
 import { isStatus, statusOptions } from '../../lib/status'
@@ -36,8 +37,6 @@ export function AgendamentosTable({ periodo }: { periodo: Periodo }) {
 
   const total = query.data?.total ?? 0
   const itens = query.data?.itens ?? []
-  const inicio = total === 0 ? 0 : (pagina - 1) * POR_PAGINA + 1
-  const fim = Math.min(pagina * POR_PAGINA, total)
 
   return (
     <Card component="section" padding={0} className={classes.card}>
@@ -156,27 +155,7 @@ export function AgendamentosTable({ periodo }: { periodo: Periodo }) {
         </Table>
       </Table.ScrollContainer>
 
-      <Group justify="space-between" gap="sm" className={classes.foot}>
-        <span className={classes.num}>
-          {inicio}–{fim} de {formatInteger(total)}
-        </span>
-        <Group gap="xs">
-          <Button
-            leftSection={<ChevronLeft size={16} strokeWidth={1.75} />}
-            disabled={pagina === 1}
-            onClick={() => setPagina((p) => p - 1)}
-          >
-            Anterior
-          </Button>
-          <Button
-            rightSection={<ChevronRight size={16} strokeWidth={1.75} />}
-            disabled={fim >= total}
-            onClick={() => setPagina((p) => p + 1)}
-          >
-            Próxima
-          </Button>
-        </Group>
-      </Group>
+      <Paginacao pagina={pagina} porPagina={POR_PAGINA} total={total} onChange={setPagina} />
     </Card>
   )
 }

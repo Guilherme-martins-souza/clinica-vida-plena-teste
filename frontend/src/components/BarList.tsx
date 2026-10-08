@@ -7,6 +7,8 @@ export type BarListRow = {
   sublabel?: string
   /** Taxa em % (0 a 100). */
   value: number
+  /** Recorte sem dados (ex.: nenhuma consulta concluída): a barra fica vazia e o valor vira "—". */
+  semDados?: boolean
   /** Contagem que explica a taxa, ex.: "74 de 214". */
   count?: string
   /** Texto completo da linha para o title (dica ao passar o mouse). */
@@ -44,9 +46,9 @@ export function BarList({ rows, max, reference, compact = false, formatValue = f
               // Variável CSS própria: o TypeScript não conhece, por isso o "as CSSProperties".
               style={reference ? ({ '--ref': toPercentOfScale(reference.value) } as CSSProperties) : undefined}
             >
-              <span className={classes.fill} style={{ width: toPercentOfScale(row.value) }} />
+              <span className={classes.fill} style={{ width: row.semDados ? 0 : toPercentOfScale(row.value) }} />
             </span>
-            <span className={classes.value}>{formatValue(row.value)}</span>
+            <span className={classes.value}>{row.semDados ? '—' : formatValue(row.value)}</span>
             {!compact && <span className={classes.count}>{row.count}</span>}
           </div>
         ))}

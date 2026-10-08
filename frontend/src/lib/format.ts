@@ -68,3 +68,9 @@ export function formatDateRange(from: Date, to: Date): string {
 export function formatDateTime(date: Date): string {
   return `${formatDate(date)}, ${formatTime(date)}`
 }
+
+/** "51973652906" → "(51) 97365-2906"; "5133652906" → "(51) 3365-2906". Fora disso, devolve como veio. */
+export function formatTelefone(digitos: string): string {
+  const partes = /^(\d{2})(\d{4,5})(\d{4})$/.exec(digitos)
+  return partes ? `(${partes[1]}) ${partes[2]}-${partes[3]}` : digitos
+}

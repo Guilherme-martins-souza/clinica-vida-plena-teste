@@ -1,0 +1,4 @@
+/* Cada horário da grade numa linha própria. */
+.grade {
+  display: block;
+}
