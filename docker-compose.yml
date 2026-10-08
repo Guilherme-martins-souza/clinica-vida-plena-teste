@@ -34,6 +34,7 @@ services:
       MONGODB_URI: mongodb://mongo:27017/clinica?replicaSet=rs0
       MONGODB_URI_TEST: mongodb://mongo:27017/clinica_test?replicaSet=rs0
       DATA_DIR: /data
+      WHATSAPP_URL: http://whatsapp-mock:8025
     volumes:
       - ./backend:/app
       - /app/node_modules # mantém o node_modules instalado na imagem
@@ -41,6 +42,17 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
+      whatsapp-mock:
+        condition: service_started
+
+  whatsapp-mock:
+    build: ./whatsapp-mock
+    init: true
+    ports:
+      - "8025:8025"
+    volumes:
+      - ./whatsapp-mock:/app
+      - /app/node_modules # mantém o node_modules instalado na imagem
 
   frontend:
     build: ./frontend
