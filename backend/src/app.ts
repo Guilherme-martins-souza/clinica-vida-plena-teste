@@ -4,6 +4,7 @@ import { consultasRouter } from './routes/consultas';
 import { healthRouter } from './routes/health';
 import { importacoesRouter } from './routes/importacoes';
 import { indicadoresRouter } from './routes/indicadores';
+import { listaEsperaRouter } from './routes/lista-espera';
 import { medicosRouter } from './routes/medicos';
 import { pacientesRouter } from './routes/pacientes';
 import { prevencaoRouter } from './routes/prevencao';
@@ -19,6 +20,7 @@ app.use('/api/medicos', medicosRouter);
 app.use('/api/indicadores', indicadoresRouter);
 app.use('/api/pacientes', pacientesRouter);
 app.use('/api/prevencao-de-faltas', prevencaoRouter);
+app.use('/api/lista-espera', listaEsperaRouter);
 
 // A ordem importa: 404 e erros sempre por último.
 app.use(notFoundHandler);

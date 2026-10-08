@@ -1,4 +1,4 @@
-export type TipoMensagem = 'criada' | 'confirmacao' | 'lembrete';
+export type TipoMensagem = 'criada' | 'confirmacao' | 'lembrete' | 'vaga';
 
 export type Enviador = (mensagem: { to: string; tipo: TipoMensagem; text: string }) => Promise<void>;
 

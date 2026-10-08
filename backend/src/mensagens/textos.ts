@@ -57,3 +57,15 @@ export function textoLembrete({ paciente, medico, inicio }: DadosTexto): string 
     OPCOES,
   ].join('\n');
 }
+
+// Mensagem 4: oferece uma vaga a quem está na lista de espera (`paciente` é o nome da pessoa da espera).
+export function textoVaga({ paciente, medico, inicio }: DadosTexto): string {
+  const { data, hora } = dataEHora(inicio);
+  return [
+    CLINICA,
+    '',
+    `Olá, ${paciente}! Surgiu uma vaga disponível em ${data} às ${hora} com ${medico}. Você quer ficar com ela?`,
+    '',
+    OPCOES,
+  ].join('\n');
+}

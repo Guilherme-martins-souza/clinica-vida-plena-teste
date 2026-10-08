@@ -5,7 +5,7 @@ import { criarConsulta, type ConsultaDoc } from '../consultas/criar-consulta';
 import { ABAS, contarAbas, listarConsultas, type FiltroConsultas } from '../consultas/listar-consultas';
 import { HttpError } from '../errors';
 import { ehDataIso } from '../fuso';
-import { enviarMensagem } from '../mensagens/enviar';
+import { enviarMensagem, oferecerVaga } from '../mensagens/enviar';
 import { STATUS_CONSULTA, TIPOS_ATENDIMENTO } from '../models/consulta';
 import { lerPaginacao } from '../paginacao';
 
@@ -114,5 +114,11 @@ consultasRouter.post('/:id/mensagens', async (req, res) => {
   }
 
   await enviarMensagem(req.params.id, dados.data.tipo);
+  res.json({ enviada: true });
+});
+
+// Oferece o horário desta consulta (risco muito alta) a quem está na lista de espera.
+consultasRouter.post('/:id/oferecer-vaga', async (req, res) => {
+  await oferecerVaga(req.params.id);
   res.json({ enviada: true });
 });

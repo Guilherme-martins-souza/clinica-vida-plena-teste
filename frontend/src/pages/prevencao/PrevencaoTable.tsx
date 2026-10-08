@@ -1,8 +1,9 @@
 import { Button, Group, Table, Text } from '@mantine/core'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Copy, MessageCircle } from 'lucide-react'
+import { CalendarPlus, Copy, MessageCircle } from 'lucide-react'
 import { alterarStatus } from '../../api/consultas'
-import { enviarMensagem, type ConsultaPrevencao, type TipoMensagem } from '../../api/prevencao'
+import { ApiError } from '../../api/http'
+import { enviarMensagem, oferecerVaga, type ConsultaPrevencao, type TipoMensagem } from '../../api/prevencao'
 import type { AgendamentoStatus } from '../../api/types'
 import { avisarErro, avisarSucesso } from '../../components/avisos'
 import tableClasses from '../../components/DataTable.module.css'
@@ -47,6 +48,20 @@ export function PrevencaoTable({ itens, vazia }: PrevencaoTableProps) {
       )
     },
     onError: (erro) => avisarErro('Não foi possível enviar a mensagem', erro.message),
+  })
+
+  const vaga = useMutation({
+    mutationFn: (consulta: ConsultaPrevencao) => oferecerVaga(consulta.id),
+    onSuccess: () => {
+      avisarSucesso('Vaga oferecida', 'Mensagem enviada à lista de espera. Veja em localhost:8025.')
+    },
+    onError: (erro) => {
+      if (erro instanceof ApiError && erro.code === 'SEM_LISTA_DE_ESPERA') {
+        avisarErro('Lista de espera vazia', erro.message)
+      } else {
+        avisarErro('Não foi possível oferecer a vaga', erro.message)
+      }
+    },
   })
 
   /** Copia o telefone no formato (51) 97365-2906. */
@@ -145,6 +160,16 @@ export function PrevencaoTable({ itens, vazia }: PrevencaoTableProps) {
                     >
                       Copiar contato
                     </Button>
+                    {c.risco.nivel === 'muito_alta' && c.status === 'agendada' && (
+                      <Button
+                        size="xs"
+                        leftSection={<CalendarPlus size={16} strokeWidth={1.75} />}
+                        loading={vaga.isPending && vaga.variables.id === c.id}
+                        onClick={() => vaga.mutate(c)}
+                      >
+                        Oferecer vaga
+                      </Button>
+                    )}
                   </Group>
                 </Table.Td>
               </Table.Tr>

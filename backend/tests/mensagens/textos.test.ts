@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { linkGoogleCalendar } from '../../src/mensagens/link-calendario';
-import { textoConfirmacao, textoCriada, textoLembrete } from '../../src/mensagens/textos';
+import { textoConfirmacao, textoCriada, textoLembrete, textoVaga } from '../../src/mensagens/textos';
 
 // 12/10/2026 às 09:00 em São Paulo (12:00 UTC).
 const dados = { paciente: 'Maria Silva', medico: 'Dr. Paulo Mendes', inicio: new Date('2026-10-12T12:00:00Z') };
@@ -33,6 +33,14 @@ describe('textos das mensagens', () => {
     expect(textoLembrete(dados)).toBe(
       'Clínica Vida Plena\n\n' +
         'Olá, Maria Silva! Lembrete: sua consulta com Dr. Paulo Mendes é em 12/10/2026 às 09:00.' +
+        OPCOES,
+    );
+  });
+
+  it('mensagem 4 oferece a vaga com dia, hora e médico e termina com as opções', () => {
+    expect(textoVaga(dados)).toBe(
+      'Clínica Vida Plena\n\n' +
+        'Olá, Maria Silva! Surgiu uma vaga disponível em 12/10/2026 às 09:00 com Dr. Paulo Mendes. Você quer ficar com ela?' +
         OPCOES,
     );
   });

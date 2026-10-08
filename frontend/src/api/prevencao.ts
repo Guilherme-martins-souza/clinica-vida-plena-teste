@@ -100,3 +100,8 @@ export async function buscarRegras(): Promise<Regras> {
 export async function enviarMensagem(consultaId: string, tipo: TipoMensagem): Promise<void> {
   await postJson(`/api/consultas/${encodeURIComponent(consultaId)}/mensagens`, { tipo })
 }
+
+/** Oferece o horário da consulta à primeira pessoa elegível da lista de espera. Sem ninguém, a API responde 404 SEM_LISTA_DE_ESPERA (ApiError). */
+export async function oferecerVaga(consultaId: string): Promise<void> {
+  await postJson(`/api/consultas/${encodeURIComponent(consultaId)}/oferecer-vaga`, {})
+}
