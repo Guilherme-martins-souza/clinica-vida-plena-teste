@@ -67,6 +67,7 @@ export function DescartesTable({ importacaoId, descartesPorMotivo }: DescartesTa
               setPagina(1)
             }}
             clearable
+            maxDropdownHeight="30rem" // cabem todos os motivos sem rolagem escondida
             className={classes.motivo}
           />
           <Button

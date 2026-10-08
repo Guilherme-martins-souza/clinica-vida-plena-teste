@@ -23,6 +23,7 @@ export const MOTIVOS_DESCARTE = [
   'fora_da_grade',
   'resultado_no_futuro',
   'passada_sem_resultado',
+  'horario_ocupado',
 ] as const;
 export type MotivoDescarte = (typeof MOTIVOS_DESCARTE)[number];
 
@@ -61,12 +62,6 @@ export interface TotaisImportacao {
   pacientes: number;
 }
 
-export interface SlotDuplo {
-  medicoId: string;
-  inicio: Date;
-  codigos: string[]; // ids (coluna id) das consultas no mesmo slot
-}
-
 export interface Descarte {
   linha: number; // número da linha no CSV (cabeçalho = 1)
   codigo: string; // coluna id
@@ -84,7 +79,6 @@ export interface DadosImportacao {
   totais: TotaisImportacao | null;
   descartesPorMotivo: Partial<Record<MotivoDescarte, number>>;
   correcoesPorTipo: Partial<Record<TipoCorrecao, number>>;
-  slotsDuplos: SlotDuplo[];
   descartes: Descarte[];
   arquivos: { json: string; csv: string } | null;
 }
@@ -105,15 +99,6 @@ const totaisSchema = new Schema<TotaisImportacao>(
 function contagemPorNome(nomes: readonly string[]): Schema {
   return new Schema(Object.fromEntries(nomes.map((nome) => [nome, Number])), { _id: false });
 }
-
-const slotDuploSchema = new Schema<SlotDuplo>(
-  {
-    medicoId: { type: String, required: true },
-    inicio: { type: Date, required: true },
-    codigos: { type: [String], required: true },
-  },
-  { _id: false },
-);
 
 // Valores originais das 9 colunas; podem vir vazios.
 const valoresCsvSchema = new Schema(
@@ -149,7 +134,6 @@ const importacaoSchema = new Schema<DadosImportacao>({
   totais: { type: totaisSchema, default: null },
   descartesPorMotivo: { type: contagemPorNome(MOTIVOS_DESCARTE), default: {} },
   correcoesPorTipo: { type: contagemPorNome(TIPOS_CORRECAO), default: {} },
-  slotsDuplos: { type: [slotDuploSchema], default: [] },
   descartes: { type: [descarteSchema], default: [] },
   arquivos: { type: arquivosSchema, default: null },
 });

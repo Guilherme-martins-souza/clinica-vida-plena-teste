@@ -21,7 +21,6 @@ function importacaoConcluida(): DadosImportacao {
     },
     descartesPorMotivo: { duplicada: 1, fora_da_grade: 1 },
     correcoesPorTipo: { data_formato: 1 },
-    slotsDuplos: [{ medicoId: 'MED01', inicio: new Date('2025-09-26T13:00:00Z'), codigos: ['AG1', 'AG2'] }],
     descartes: [
       {
         linha: 3,
@@ -58,7 +57,6 @@ function emAndamento(): DadosImportacao {
     totais: null,
     descartesPorMotivo: {},
     correcoesPorTipo: {},
-    slotsDuplos: [],
     descartes: [],
     arquivos: null,
   };

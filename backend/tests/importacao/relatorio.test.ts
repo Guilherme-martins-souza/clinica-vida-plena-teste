@@ -40,7 +40,6 @@ function importacao(campos: Partial<DadosImportacao> = {}): DadosImportacao {
     totais: { lidas: 7359, importadas: 7153, corrigidas: 4612, descartadas: 206, medicos: 6, pacientes: 1616 },
     descartesPorMotivo: { passada_sem_resultado: 69, duplicada: 40, fora_da_grade: 18 },
     correcoesPorTipo: { data_formato: 1900 },
-    slotsDuplos: [],
     descartes: [descarte(2), descarte(5)],
     arquivos: null,
     ...campos,

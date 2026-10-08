@@ -52,7 +52,6 @@ export async function executarImportacao({ origem, dataDir }: OpcoesImportacao):
       totais: resultado.totais,
       descartesPorMotivo: resultado.descartesPorMotivo,
       correcoesPorTipo: resultado.correcoesPorTipo,
-      slotsDuplos: resultado.slotsDuplos,
       descartes: resultado.descartes,
     });
   } catch (err) {

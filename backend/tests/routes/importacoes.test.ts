@@ -17,7 +17,6 @@ function concluida(iniciadaEm: string): DadosImportacao {
     totais: TOTAIS,
     descartesPorMotivo: { duplicada: 1, fora_da_grade: 1 },
     correcoesPorTipo: { data_formato: 1 },
-    slotsDuplos: [],
     descartes: [
       {
         linha: 3,
@@ -132,7 +131,6 @@ describe('GET /api/importacoes/:id', () => {
       totais: TOTAIS,
       descartesPorMotivo: { duplicada: 1, fora_da_grade: 1 },
       correcoesPorTipo: { data_formato: 1 },
-      slotsDuplos: [],
       erro: null,
     });
     expect(res.body).not.toHaveProperty('descartes');

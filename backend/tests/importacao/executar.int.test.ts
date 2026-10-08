@@ -105,7 +105,6 @@ describe('executarImportacao', () => {
       totais: { lidas: 4, importadas: 2, corrigidas: 1, descartadas: 2, medicos: 1, pacientes: 1 },
       descartesPorMotivo: { duplicada: 1, fora_da_grade: 1 },
       correcoesPorTipo: { data_formato: 1 },
-      slotsDuplos: [],
     });
     expect(salva?.descartes.map(({ linha, codigo, motivo }) => ({ linha, codigo, motivo }))).toEqual([
       { linha: 3, codigo: 'AG00001', motivo: 'duplicada' },

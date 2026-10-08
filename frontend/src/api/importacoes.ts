@@ -23,6 +23,7 @@ export type MotivoDescarte =
   | 'fora_da_grade'
   | 'resultado_no_futuro'
   | 'passada_sem_resultado'
+  | 'horario_ocupado'
 
 export type TipoCorrecao =
   | 'status_padronizado'
@@ -67,7 +68,6 @@ export type ImportacaoDetalhe = ImportacaoResumo & {
   dataReferencia: Date | null
   descartesPorMotivo: Partial<Record<MotivoDescarte, number>>
   correcoesPorTipo: Partial<Record<TipoCorrecao, number>>
-  slotsDuplos: { medicoId: string; inicio: Date; codigos: string[] }[]
 }
 
 /** Lança um erro claro quando a API devolve algo fora do formato esperado. */
@@ -150,13 +150,6 @@ function toDescarte(item: unknown): Descarte {
   }
 }
 
-function toSlotDuplo(item: unknown): ImportacaoDetalhe['slotsDuplos'][number] {
-  if (!isJsonObject(item) || typeof item.medicoId !== 'string' || !Array.isArray(item.codigos)) {
-    return formatoInvalido()
-  }
-  return { medicoId: item.medicoId, inicio: toDate(item.inicio), codigos: item.codigos.map(String) }
-}
-
 function toDetalhe(item: unknown): ImportacaoDetalhe {
   const resumo = toResumo(item)
   if (!isJsonObject(item)) return formatoInvalido()
@@ -166,7 +159,6 @@ function toDetalhe(item: unknown): ImportacaoDetalhe {
     dataReferencia: toDateOrNull(item.dataReferencia),
     descartesPorMotivo: toContagens<MotivoDescarte>(item.descartesPorMotivo),
     correcoesPorTipo: toContagens<TipoCorrecao>(item.correcoesPorTipo),
-    slotsDuplos: Array.isArray(item.slotsDuplos) ? item.slotsDuplos.map(toSlotDuplo) : [],
   }
 }
 

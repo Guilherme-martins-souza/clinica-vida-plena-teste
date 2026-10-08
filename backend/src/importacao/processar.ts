@@ -3,7 +3,6 @@ import {
   COLUNAS_CSV,
   type Descarte,
   type MotivoDescarte,
-  type SlotDuplo,
   type TipoCorrecao,
   type TotaisImportacao,
 } from '../models/importacao';
@@ -30,7 +29,6 @@ export interface ResultadoProcessamento {
   totais: TotaisImportacao;
   descartesPorMotivo: Partial<Record<MotivoDescarte, number>>;
   correcoesPorTipo: Partial<Record<TipoCorrecao, number>>;
-  slotsDuplos: SlotDuplo[]; // slots do médico com 2+ consultas ativas (aviso)
 }
 
 // Linha que passou por todas as regras: vira consulta, com as correções aplicadas a ela.
@@ -65,23 +63,23 @@ export function processar(linhas: LinhaCsv[], medicos: MedicoArquivo[]): Resulta
   // 3. Mesmo id com versões diferentes.
   const seguem = resolverConflitos(unicas, descartar);
 
-  // 4 e 5. Regras por linha: a primeira que falhar define o motivo; as outras viram consultas.
+  // 4 e 5. Regras por linha: a primeira que falhar define o motivo; as outras seguem.
   const medicosPorId = new Map(medicos.map((medico) => [medico.id, medico]));
-  const aprovadas: LinhaAprovada[] = [];
+  const validas: LinhaAprovada[] = [];
   for (const linha of seguem) {
     const avaliacao = avaliarLinha(linha, medicosPorId, dataReferencia);
     if ('motivo' in avaliacao) {
       descartar(linha, avaliacao.motivo);
     } else {
-      aprovadas.push({ linha, ...avaliacao });
+      validas.push({ linha, ...avaliacao });
     }
   }
 
-  // 6. Pacientes (só de linhas aprovadas); marca nome_padronizado nas linhas com outra grafia.
-  const pacientes = montarPacientes(aprovadas);
+  // 6. Horário do médico já ocupado: fica a consulta marcada primeiro; as outras são descartadas.
+  const aprovadas = descartarHorariosOcupados(validas, descartar);
 
-  // 7. Avisos: slots com duas ou mais consultas ativas.
-  const slotsDuplos = encontrarSlotsDuplos(aprovadas);
+  // 7. Pacientes (só de linhas aprovadas); marca nome_padronizado nas linhas com outra grafia.
+  const pacientes = montarPacientes(aprovadas);
 
   // 8. Totais e contagens.
   descartes.sort((a, b) => a.linha - b.linha);
@@ -112,7 +110,6 @@ export function processar(linhas: LinhaCsv[], medicos: MedicoArquivo[]): Resulta
     },
     descartesPorMotivo,
     correcoesPorTipo,
-    slotsDuplos,
   };
 }
 
@@ -153,23 +150,43 @@ function montarPacientes(aprovadas: LinhaAprovada[]): DadosPaciente[] {
   return pacientes;
 }
 
-// Slots (médico + horário) com duas ou mais consultas ativas (não canceladas).
-// Os registros são verdadeiros (encaixe de paciente), então entram e viram aviso no relatório.
-function encontrarSlotsDuplos(aprovadas: LinhaAprovada[]): SlotDuplo[] {
-  const porSlot = new Map<string, SlotDuplo>();
-  for (const { consulta } of aprovadas) {
+// Um médico não pode ter duas consultas ativas (não canceladas) no mesmo slot.
+// No histórico isso é um possível encaixe: outro paciente marcado num horário já ocupado.
+// Fica a consulta marcada primeiro; as marcadas depois saem como horario_ocupado.
+function descartarHorariosOcupados(
+  validas: LinhaAprovada[],
+  descartar: (linha: LinhaCsv, motivo: MotivoDescarte) => void,
+): LinhaAprovada[] {
+  const porSlot = new Map<string, LinhaAprovada[]>();
+  for (const valida of validas) {
+    const { consulta } = valida;
     if (consulta.status === 'cancelada_paciente' || consulta.status === 'cancelada_clinica') {
       continue;
     }
     const chave = `${consulta.medicoId}|${consulta.inicio.toISOString()}`;
-    const slot = porSlot.get(chave) ?? { medicoId: consulta.medicoId, inicio: consulta.inicio, codigos: [] };
-    slot.codigos.push(consulta.codigoLegado ?? '');
-    porSlot.set(chave, slot);
+    porSlot.set(chave, [...(porSlot.get(chave) ?? []), valida]);
   }
 
-  return [...porSlot.values()]
-    .filter((slot) => slot.codigos.length > 1)
-    .sort((a, b) => a.inicio.getTime() - b.inicio.getTime() || a.medicoId.localeCompare(b.medicoId));
+  const descartadas = new Set<LinhaAprovada>();
+  for (const doSlot of porSlot.values()) {
+    doSlot.sort(ordemDeMarcacao);
+    for (const valida of doSlot.slice(1)) {
+      descartadas.add(valida);
+      descartar(valida.linha, 'horario_ocupado');
+    }
+  }
+  return validas.filter((valida) => !descartadas.has(valida));
+}
+
+// Quem foi marcado antes. Sem a data de marcação de alguma das duas, vale a ordem do arquivo:
+// os ids do sistema antigo são sequenciais, então a linha de cima foi criada antes.
+function ordemDeMarcacao(a: LinhaAprovada, b: LinhaAprovada): number {
+  const marcadaA = a.consulta.marcadaEm;
+  const marcadaB = b.consulta.marcadaEm;
+  if (marcadaA && marcadaB && marcadaA.getTime() !== marcadaB.getTime()) {
+    return marcadaA.getTime() - marcadaB.getTime();
+  }
+  return a.linha.linha - b.linha.linha;
 }
 
 function calcularDataReferencia(linhas: LinhaCsv[]): Date | null {

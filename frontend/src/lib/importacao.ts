@@ -18,6 +18,7 @@ export const MOTIVO_LABELS: Record<MotivoDescarte, string> = {
   fora_da_grade: 'Fora da grade',
   resultado_no_futuro: 'Resultado em consulta futura',
   passada_sem_resultado: 'Consulta passada sem resultado',
+  horario_ocupado: 'Horário ocupado (possível encaixe)',
 }
 
 export const CORRECAO_LABELS: Record<TipoCorrecao, string> = {

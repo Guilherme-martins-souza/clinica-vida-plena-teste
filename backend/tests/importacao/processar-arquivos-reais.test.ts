@@ -20,23 +20,24 @@ describe('processar sobre os arquivos reais de /data', () => {
     expect(resultado.dataReferencia?.toISOString()).toBe('2026-09-24T20:42:00.000Z');
   });
 
-  it('lê 7.359 linhas, importa 7.153, descarta 206, com 6 médicos e 1.616 pacientes e 4.612 corrigidas', () => {
+  it('lê 7.359 linhas, importa 7.071, descarta 288, com 6 médicos e 1.607 pacientes e 4.570 corrigidas', () => {
     expect(resultado.totais).toEqual({
       lidas: 7359,
-      importadas: 7153,
-      corrigidas: 4612,
-      descartadas: 206,
+      importadas: 7071,
+      corrigidas: 4570,
+      descartadas: 288,
       medicos: 6,
-      pacientes: 1616,
+      pacientes: 1607,
     });
-    expect(resultado.consultas).toHaveLength(7153);
-    expect(resultado.descartes).toHaveLength(206);
+    expect(resultado.consultas).toHaveLength(7071);
+    expect(resultado.descartes).toHaveLength(288);
     expect(resultado.medicos).toHaveLength(6);
-    expect(resultado.pacientes).toHaveLength(1616);
+    expect(resultado.pacientes).toHaveLength(1607);
   });
 
   it('descarta por motivo exatamente como na spec', () => {
     expect(resultado.descartesPorMotivo).toEqual({
+      horario_ocupado: 82,
       passada_sem_resultado: 69,
       duplicada: 40,
       conflito_status: 34,
@@ -55,8 +56,8 @@ describe('processar sobre os arquivos reais de /data', () => {
     }
 
     expect(porStatus).toEqual({
-      realizada: 4344,
-      falta: 1986,
+      realizada: 4270,
+      falta: 1978,
       cancelada_paciente: 306,
       agendada: 253,
       cancelada_clinica: 243,
@@ -66,19 +67,32 @@ describe('processar sobre os arquivos reais de /data', () => {
 
   it('conta as correções por tipo como na spec', () => {
     expect(resultado.correcoesPorTipo).toEqual({
-      status_padronizado: 2613,
-      data_formato: 1900,
-      tipo_padronizado: 1343,
+      status_padronizado: 2591,
+      data_formato: 1879,
+      tipo_padronizado: 1329,
       cancelado_sem_autor: 130,
-      telefone_invalido: 129,
+      telefone_invalido: 127,
       nome_padronizado: 81,
       data_agendamento_invalida: 10,
       status_vazio_futuro: 2,
     });
   });
 
-  it('aponta 82 slots com duas consultas ativas', () => {
-    expect(resultado.slotsDuplos).toHaveLength(82);
+  it('descarta como horario_ocupado a consulta marcada por último em cada um dos 82 horários duplos', () => {
+    const ocupados = resultado.descartes.filter((d) => d.motivo === 'horario_ocupado').map((d) => d.codigo);
+    const importadas = resultado.consultas.map((c) => c.codigoLegado);
+    // 29/09/2025 11:00, MED04: AG00326 marcada 4 dias antes, AG00353 no próprio dia
+    expect(ocupados).toContain('AG00353');
+    expect(importadas).toContain('AG00326');
+    // 30/06/2026 11:30, MED04: AG05281 está sem data de marcação, vale a ordem do arquivo
+    expect(ocupados).toContain('AG05531');
+    expect(importadas).toContain('AG05281');
+  });
+
+  it('nenhum médico fica com duas consultas ativas no mesmo horário', () => {
+    const ativas = resultado.consultas.filter((c) => !c.status.startsWith('cancelada'));
+    const slots = new Set(ativas.map((c) => `${c.medicoId}|${c.inicio.toISOString()}`));
+    expect(slots.size).toBe(ativas.length);
   });
 
   it('rodar duas vezes sobre os mesmos arquivos dá o mesmo resultado', () => {

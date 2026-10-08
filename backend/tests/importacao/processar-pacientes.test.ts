@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { processar } from '../../src/importacao/processar';
-import { MEDICOS, linha } from './linhas-de-teste';
+import { MEDICOS, linha, motivos } from './linhas-de-teste';
 
 // Fixa a data de referência em 24/09/2026 17:42 (linha futura e válida, de outro paciente).
 const REFERENCIA = linha(99, { id: 'AGREF', paciente_id: 'PAC0099', paciente_nome: 'Referência' });
@@ -59,9 +59,9 @@ describe('pacientes', () => {
     const resultado = processar(
       [
         linha(2, { paciente_nome: 'ANA LIMA' }), // nome_padronizado
-        linha(3, { paciente_nome: 'Ana Lima' }), // sem correção
-        linha(4, { paciente_nome: 'Ana  Lima ', paciente_telefone: 'sem telefone' }), // nome_padronizado + telefone_invalido
-        linha(5, { paciente_nome: 'Ana Lima' }), // sem correção
+        linha(3, { paciente_nome: 'Ana Lima', data_consulta: '2026-09-28 08:30' }), // sem correção
+        linha(4, { paciente_nome: 'Ana  Lima ', paciente_telefone: 'sem telefone', data_consulta: '2026-09-28 09:00' }), // nome_padronizado + telefone_invalido
+        linha(5, { paciente_nome: 'Ana Lima', data_consulta: '2026-09-28 09:30' }), // sem correção
       ],
       MEDICOS,
     );
@@ -71,38 +71,99 @@ describe('pacientes', () => {
   });
 });
 
-describe('slots com duas consultas ativas', () => {
+describe('horário do médico já ocupado', () => {
   // 21/09/2026 08:00 (segunda) é passado em relação à referência
-  const passada = { data_agendamento: '2026-09-01 10:00', data_consulta: '2026-09-21 08:00' };
+  const passada = { data_agendamento: '2026-09-01 10:00', data_consulta: '2026-09-21 08:00', status: 'realizada' };
 
-  it('falta e realizada no mesmo slot do médico: as duas entram e o slot vira um aviso', () => {
+  it('duas consultas ativas no mesmo slot do médico: fica a marcada primeiro e a outra sai como horario_ocupado', () => {
     const resultado = processar(
       [
         linha(2, { ...passada, id: 'AG1', paciente_id: 'PAC0001', status: 'falta' }),
-        linha(3, { ...passada, id: 'AG2', paciente_id: 'PAC0002', status: 'realizada' }),
+        linha(3, { ...passada, id: 'AG2', paciente_id: 'PAC0002', data_agendamento: '2026-09-20 15:00' }),
         REFERENCIA,
       ],
       MEDICOS,
     );
 
-    expect(resultado.consultas.map((c) => c.codigoLegado)).toEqual(['AG1', 'AG2', 'AGREF']);
-    expect(resultado.slotsDuplos).toEqual([
-      { medicoId: 'MED01', inicio: new Date('2026-09-21T11:00:00.000Z'), codigos: ['AG1', 'AG2'] },
-    ]);
+    expect(resultado.consultas.map((c) => c.codigoLegado)).toEqual(['AG1', 'AGREF']);
+    expect(motivos(resultado)).toEqual({ 3: 'horario_ocupado' });
   });
 
-  it('uma consulta ativa e uma cancelada no mesmo slot não geram aviso', () => {
+  it('a consulta marcada depois é a descartada, mesmo vindo antes no arquivo', () => {
     const resultado = processar(
       [
-        linha(2, { ...passada, id: 'AG1', paciente_id: 'PAC0001', status: 'realizada' }),
-        linha(3, { ...passada, id: 'AG2', paciente_id: 'PAC0002', status: 'cancelado pelo paciente' }),
+        linha(2, { ...passada, id: 'AG1', paciente_id: 'PAC0001', data_agendamento: '2026-09-20 15:00' }),
+        linha(3, { ...passada, id: 'AG2', paciente_id: 'PAC0002', data_agendamento: '2026-09-10 09:00' }),
+        REFERENCIA,
+      ],
+      MEDICOS,
+    );
+
+    expect(motivos(resultado)).toEqual({ 2: 'horario_ocupado' });
+  });
+
+  it('marcadas no mesmo instante ou sem data de marcação: vale a ordem do arquivo', () => {
+    const resultado = processar(
+      [
+        // marcação depois da consulta: entra sem data de marcação
+        linha(2, { ...passada, id: 'AG1', paciente_id: 'PAC0001', data_agendamento: '2026-09-23 08:00' }),
+        linha(3, { ...passada, id: 'AG2', paciente_id: 'PAC0002', data_agendamento: '2026-09-20 15:00' }),
+        linha(4, { ...passada, id: 'AG3', paciente_id: 'PAC0003', data_agendamento: '2026-09-20 15:00' }),
+        REFERENCIA,
+      ],
+      MEDICOS,
+    );
+
+    expect(resultado.consultas[0]).toMatchObject({ codigoLegado: 'AG1', marcadaEm: null });
+    expect(motivos(resultado)).toEqual({ 3: 'horario_ocupado', 4: 'horario_ocupado' });
+  });
+
+  it('consulta cancelada não ocupa o horário', () => {
+    const resultado = processar(
+      [
+        linha(2, { ...passada, id: 'AG1', paciente_id: 'PAC0001', status: 'cancelado pelo paciente' }),
+        linha(3, { ...passada, id: 'AG2', paciente_id: 'PAC0002', data_agendamento: '2026-09-20 15:00' }),
         REFERENCIA,
       ],
       MEDICOS,
     );
 
     expect(resultado.consultas).toHaveLength(3);
-    expect(resultado.slotsDuplos).toEqual([]);
+    expect(motivos(resultado)).toEqual({});
+  });
+
+  it('mesmo horário com médicos diferentes não é horário ocupado', () => {
+    const resultado = processar(
+      [
+        linha(2, { ...passada, id: 'AG1', paciente_id: 'PAC0001' }),
+        linha(3, {
+          ...passada,
+          id: 'AG2',
+          paciente_id: 'PAC0002',
+          medico_id: 'MED02',
+          data_consulta: '2026-09-22 08:00',
+        }),
+        linha(4, { ...passada, id: 'AG3', paciente_id: 'PAC0003', data_consulta: '2026-09-21 08:30' }),
+        REFERENCIA,
+      ],
+      MEDICOS,
+    );
+
+    expect(motivos(resultado)).toEqual({});
+  });
+
+  it('paciente que só tinha a consulta descartada não é criado e a linha não conta correção', () => {
+    const resultado = processar(
+      [
+        linha(2, { ...passada, id: 'AG1', paciente_id: 'PAC0001' }),
+        linha(3, { ...passada, id: 'AG2', paciente_id: 'PAC0002', tipo_atendimento: 'Convênio' }),
+        REFERENCIA,
+      ],
+      MEDICOS,
+    );
+
+    expect(resultado.pacientes.map((p) => p._id)).toEqual(['PAC0001', 'PAC0099']);
+    expect(resultado.correcoesPorTipo).toEqual({});
   });
 });
 
@@ -112,7 +173,7 @@ describe('totais e contagens', () => {
       [
         linha(2, { paciente_id: 'PAC0001' }),
         linha(3, { id: 'AG00002', paciente_id: 'PAC0001' }), // cópia da linha 2
-        linha(4, { paciente_id: 'PAC0002', tipo_atendimento: 'Particular' }), // corrigida
+        linha(4, { paciente_id: 'PAC0002', tipo_atendimento: 'Particular', data_consulta: '2026-09-28 08:30' }), // corrigida
         linha(5, { paciente_id: 'PAC0003', status: 'realizada' }), // resultado_no_futuro
         linha(6, { paciente_id: 'PAC0004', medico_id: 'MED99' }), // medico_desconhecido
         linha(7, { paciente_id: 'PAC0002', status: 'faltou' }), // resultado_no_futuro
