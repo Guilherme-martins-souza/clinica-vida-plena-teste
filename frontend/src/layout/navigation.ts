@@ -8,7 +8,10 @@ export const navGroups: NavGroup[] = [
   {
     label: 'Agendamentos',
     icon: Calendar,
-    items: [{ label: 'Indicadores', to: '/indicadores' }],
+    items: [
+      { label: 'Indicadores', to: '/indicadores' },
+      { label: 'Agendamentos', to: '/agendamentos' },
+    ],
   },
   {
     label: 'Parametrizações',

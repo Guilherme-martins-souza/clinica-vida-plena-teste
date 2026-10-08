@@ -1,0 +1,21 @@
+.ponto {
+  display: block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  /* Vazado por padrão (opção desabilitada); a opção habilitada recebe a cor do status. */
+  box-shadow: inset 0 0 0 1.5px var(--line-strong);
+}
+
+.motivo {
+  display: block;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--ink-muted);
+}
+
+/* Opção desabilitada: texto em tom secundário, sem o esmaecido padrão do Mantine (contraste legível). */
+.item[data-disabled] {
+  opacity: 1;
+  color: var(--ink-muted);
+}

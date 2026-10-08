@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { DIAS_SEMANA, fetchMedicos, type GradeItem, type MedicoComGrade } from '../../api/medicos'
 import { PageHeader } from '../../components/PageHeader'
 import { Paginacao } from '../../components/Paginacao'
-import tableClasses from '../indicadores/AgendamentosTable.module.css'
+import tableClasses from '../../components/DataTable.module.css'
 import classes from './MedicosPage.module.css'
 
 const POR_PAGINA = 10

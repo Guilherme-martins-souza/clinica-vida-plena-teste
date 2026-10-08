@@ -15,6 +15,8 @@ interface PacienteResposta {
   telefone: string | null;
   concluidas: number;
   faltas: number;
+  // true quando o paciente não tem nenhuma consulta não cancelada: a próxima que ele marcar é a 1ª na clínica.
+  primeiraConsulta: boolean;
 }
 
 const filtroSchema = z.object({ busca: z.string().trim().optional() });
@@ -43,6 +45,13 @@ pacientesRouter.get('/', async (req, res) => {
     .select('pacienteId status inicio canceladaEm')
     .lean();
 
+  // Pacientes da página que já têm alguma consulta não cancelada (para a etiqueta "1ª consulta" do agendamento).
+  const comConsulta = await Consulta.distinct('pacienteId', {
+    pacienteId: { $in: pacientes.map((paciente) => paciente._id) },
+    status: { $nin: ['cancelada_paciente', 'cancelada_clinica'] },
+  });
+  const jaVieram = new Set(comConsulta.map(String));
+
   const contagens = new Map(pacientes.map((paciente) => [paciente._id, { concluidas: 0, faltas: 0 }]));
   for (const consulta of consultas) {
     const r = resultado(consulta);
@@ -61,6 +70,7 @@ pacientesRouter.get('/', async (req, res) => {
       nome: paciente.nome,
       telefone: paciente.telefone,
       ...(contagens.get(paciente._id) ?? { concluidas: 0, faltas: 0 }),
+      primeiraConsulta: !jaVieram.has(paciente._id),
     })),
     total,
     ...paginacao,

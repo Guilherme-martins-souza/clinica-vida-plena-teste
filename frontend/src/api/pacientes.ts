@@ -9,6 +9,8 @@ export type PacienteResumo = ContagemFaltas & {
   nome: string
   /** Só dígitos (DDD + número); null quando o arquivo não trouxe um telefone válido. */
   telefone: string | null
+  /** true quando o paciente não tem consulta não cancelada: a próxima que marcar é a 1ª na clínica. */
+  primeiraConsulta: boolean
 }
 
 export type FiltroPacientes = {
@@ -39,6 +41,7 @@ function toPaciente(item: unknown): PacienteResumo {
     telefone: item.telefone === null ? null : toText(item.telefone),
     concluidas: toNumber(item.concluidas),
     faltas: toNumber(item.faltas),
+    primeiraConsulta: item.primeiraConsulta === true,
   }
 }
 

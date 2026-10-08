@@ -9,7 +9,7 @@ import { Paginacao } from '../../components/Paginacao'
 import { PageHeader } from '../../components/PageHeader'
 import { formatDateTime, formatInteger } from '../../lib/format'
 import { ORIGEM_LABELS } from '../../lib/importacao'
-import tableClasses from '../indicadores/AgendamentosTable.module.css'
+import tableClasses from '../../components/DataTable.module.css'
 import classes from './ImportacoesPage.module.css'
 import { SituacaoBadge } from './SituacaoBadge'
 

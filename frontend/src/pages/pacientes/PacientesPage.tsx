@@ -7,7 +7,7 @@ import { fetchPacientes } from '../../api/pacientes'
 import { PageHeader } from '../../components/PageHeader'
 import { Paginacao } from '../../components/Paginacao'
 import { formatInteger, formatPercent, formatTelefone, rate } from '../../lib/format'
-import tableClasses from '../indicadores/AgendamentosTable.module.css'
+import tableClasses from '../../components/DataTable.module.css'
 import classes from './PacientesPage.module.css'
 
 const POR_PAGINA = 10

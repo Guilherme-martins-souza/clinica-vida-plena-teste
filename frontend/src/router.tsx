@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 import { AppShellLayout } from './layout/AppShellLayout'
+import { AgendamentosPage } from './pages/agendamentos/AgendamentosPage'
 import { ImportacaoDetalhePage } from './pages/importacoes/ImportacaoDetalhePage'
 import { ImportacoesPage } from './pages/importacoes/ImportacoesPage'
 import { IndicadoresPage } from './pages/indicadores/IndicadoresPage'
@@ -14,6 +15,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/indicadores" replace /> },
       { path: 'indicadores', element: <IndicadoresPage /> },
+      { path: 'agendamentos', element: <AgendamentosPage /> },
       { path: 'medicos', element: <MedicosPage /> },
       { path: 'pacientes', element: <PacientesPage /> },
       { path: 'importacoes', element: <ImportacoesPage /> },

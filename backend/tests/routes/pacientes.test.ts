@@ -55,14 +55,41 @@ describe('GET /api/pacientes (PAC-01)', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       itens: [
-        { id: 'PAC0002', nome: 'Ana Conceição', telefone: null, concluidas: 0, faltas: 0 },
-        { id: 'PAC0001', nome: 'João Pereira', telefone: '11987654321', concluidas: 3, faltas: 2 },
-        { id: 'PAC0003', nome: 'Maria Silva', telefone: '53948954499', concluidas: 0, faltas: 0 },
+        { id: 'PAC0002', nome: 'Ana Conceição', telefone: null, concluidas: 0, faltas: 0, primeiraConsulta: true },
+        {
+          id: 'PAC0001',
+          nome: 'João Pereira',
+          telefone: '11987654321',
+          concluidas: 3,
+          faltas: 2,
+          primeiraConsulta: false,
+        },
+        {
+          id: 'PAC0003',
+          nome: 'Maria Silva',
+          telefone: '53948954499',
+          concluidas: 0,
+          faltas: 0,
+          primeiraConsulta: true,
+        },
       ],
       total: 3,
       pagina: 1,
       porPagina: 10,
     });
+  });
+
+  it('primeiraConsulta é true só para quem não tem consulta não cancelada (só canceladas contam como nenhuma)', async () => {
+    const res = await request(app).get('/api/pacientes');
+
+    const primeira = Object.fromEntries(
+      res.body.itens.map((paciente: { id: string; primeiraConsulta: boolean }) => [
+        paciente.id,
+        paciente.primeiraConsulta,
+      ]),
+    );
+    // Ana: nenhuma consulta. Maria: só cancelada pela clínica. João: tem realizada, falta e agendada.
+    expect(primeira).toEqual({ PAC0002: true, PAC0003: true, PAC0001: false });
   });
 
   it('busca por trecho do nome sem diferenciar maiúsculas e acentos', async () => {

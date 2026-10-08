@@ -1,5 +1,4 @@
 // Formato dos dados que as telas recebem da API.
-// A tabela de agendamentos ainda usa o mock de src/api/mocks até a tela de Agendamentos usar a API.
 
 export type AgendamentoStatus =
   'agendada' | 'confirmada' | 'realizada' | 'falta' | 'cancelada_paciente' | 'cancelada_clinica'
@@ -42,16 +41,6 @@ export type Indicadores = {
   porTipo: (ContagemFaltas & { tipo: TipoAtendimento })[]
   porPrimeiraConsulta: (ContagemFaltas & { primeiraConsulta: boolean })[]
   porAntecedencia: (ContagemFaltas & { faixa: string })[]
-}
-
-export type Agendamento = {
-  id: number
-  paciente: { nome: string; telefone: string }
-  tipo: TipoAtendimento
-  medico: Medico
-  marcadaEm: Date
-  consultaEm: Date
-  status: AgendamentoStatus
 }
 
 export type Pagina<T> = {

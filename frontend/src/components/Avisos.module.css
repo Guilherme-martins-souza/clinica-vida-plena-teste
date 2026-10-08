@@ -1,0 +1,21 @@
+.root {
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.icone,
+.iconeErro {
+  width: 1.5rem;
+  height: 1.5rem;
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.iconeErro {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.texto {
+  color: var(--ink-muted);
+}

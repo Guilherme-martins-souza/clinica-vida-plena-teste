@@ -6,7 +6,7 @@ import { fetchDescartes, urlCsvDescartes, type MotivoDescarte } from '../../api/
 import { formatInteger } from '../../lib/format'
 import { MOTIVO_LABELS } from '../../lib/importacao'
 // Mesmo visual da tabela de agendamentos (estilo DataTable do design system).
-import tableClasses from '../indicadores/AgendamentosTable.module.css'
+import tableClasses from '../../components/DataTable.module.css'
 import classes from './DescartesTable.module.css'
 
 const POR_PAGINA = 30

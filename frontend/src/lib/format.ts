@@ -48,11 +48,6 @@ export function formatDate(date: Date): string {
   return `${p.day} ${MONTHS[p.month - 1]} ${p.year}`
 }
 
-/** A data cai no dia de hoje, no fuso da clínica? */
-export function isToday(date: Date, hoje = new Date()): boolean {
-  return formatDate(date) === formatDate(hoje)
-}
-
 /** "08:30" */
 export function formatTime(date: Date): string {
   const p = partsInTimeZone(date)
