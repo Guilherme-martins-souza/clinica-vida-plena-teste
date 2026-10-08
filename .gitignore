@@ -13,3 +13,8 @@ vida-plena-design-system/
 # Fora do repositório por enquanto
 docs/
 .claude/
+
+.specs
+
+# Relatórios gerados pela importação
+data/relatorios/

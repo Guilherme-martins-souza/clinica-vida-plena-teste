@@ -21,7 +21,7 @@ Docs: `docs/tecnologias.md`, `docs/decisoes.md`, `docs/uso-de-ia.md`.
 - Tudo sobe com `docker compose up`: instalação, Mongo, backend, frontend e a importação de `data/`.
   Nada pode exigir passo manual fora do compose.
 - Não adicionar bibliotecas ou ferramentas sem perguntar antes.
-- Não fazer commit: o usuário revisa e commita.
+- Commit só quando o usuário pedir, seguindo a skill `commit` (`.claude/skills/commit/`).
 - Ao fim de cada etapa: registrar decisões em `docs/decisoes.md` e o uso/correções da IA em `docs/uso-de-ia.md`.
 - Código simples e explicável, sem mágica: o usuário vem de Laravel e Vue.
 - Sempre formatar (indentar) todo arquivo criado ou alterado, inclusive HTML e CSS, com o Prettier
