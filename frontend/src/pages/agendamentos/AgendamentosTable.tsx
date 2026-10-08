@@ -15,7 +15,7 @@ import { formatDate, formatInteger, formatTelefone, formatTime } from '../../lib
 import { isStatus, STATUS_LABELS, statusOptions } from '../../lib/status'
 import { ehFinal } from '../../lib/transicoes'
 import { PeriodoOpcional } from './PeriodoOpcional'
-import { StatusMenu } from './StatusMenu'
+import { StatusMenu } from '../../components/StatusMenu'
 import classes from './AgendamentosTable.module.css'
 
 const POR_PAGINA = 10

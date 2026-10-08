@@ -6,6 +6,7 @@ import { ImportacoesPage } from './pages/importacoes/ImportacoesPage'
 import { IndicadoresPage } from './pages/indicadores/IndicadoresPage'
 import { MedicosPage } from './pages/medicos/MedicosPage'
 import { PacientesPage } from './pages/pacientes/PacientesPage'
+import { PrevencaoPage } from './pages/prevencao/PrevencaoPage'
 
 // Todas as telas ficam dentro do AppShellLayout, que renderiza a rota filha no <Outlet />.
 export const router = createBrowserRouter([
@@ -15,6 +16,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/indicadores" replace /> },
       { path: 'indicadores', element: <IndicadoresPage /> },
+      { path: 'prevencao-de-faltas', element: <PrevencaoPage /> },
       { path: 'agendamentos', element: <AgendamentosPage /> },
       { path: 'medicos', element: <MedicosPage /> },
       { path: 'pacientes', element: <PacientesPage /> },

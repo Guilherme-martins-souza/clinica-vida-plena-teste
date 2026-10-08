@@ -1,9 +1,9 @@
 import { Button, Menu } from '@mantine/core'
 import { ChevronDown } from 'lucide-react'
 import { Fragment, useState } from 'react'
-import type { AgendamentoStatus } from '../../api/types'
-import { STATUS_LABELS } from '../../lib/status'
-import { ACAO_LABELS, opcoesDeStatus } from '../../lib/transicoes'
+import type { AgendamentoStatus } from '../api/types'
+import { STATUS_LABELS } from '../lib/status'
+import { ACAO_LABELS, opcoesDeStatus } from '../lib/transicoes'
 import classes from './StatusMenu.module.css'
 
 /** Cor do ponto de cada ação, a mesma do selo do status. */

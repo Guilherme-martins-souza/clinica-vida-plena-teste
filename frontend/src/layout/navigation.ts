@@ -10,6 +10,7 @@ export const navGroups: NavGroup[] = [
     icon: Calendar,
     items: [
       { label: 'Indicadores', to: '/indicadores' },
+      { label: 'Prevenção de Faltas', to: '/prevencao-de-faltas' },
       { label: 'Agendamentos', to: '/agendamentos' },
     ],
   },

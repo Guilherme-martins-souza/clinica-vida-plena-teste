@@ -1,0 +1,8 @@
+.vazio {
+  white-space: normal;
+}
+
+/* O selo do status não encolhe (senão o texto "Confirmada" é cortado). */
+.status > :first-child {
+  flex-shrink: 0;
+}

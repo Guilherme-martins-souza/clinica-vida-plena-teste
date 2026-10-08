@@ -117,7 +117,7 @@ function toSituacao(value: unknown): SituacaoSlot {
   return value === 'livre' || value === 'ocupado' || value === 'passado' ? value : formatoInvalido()
 }
 
-function toLinha(item: unknown): ConsultaLinha {
+export function toLinha(item: unknown): ConsultaLinha {
   const c = toObject(item)
   const paciente = toObject(c.paciente)
   const medico = toObject(c.medico)
