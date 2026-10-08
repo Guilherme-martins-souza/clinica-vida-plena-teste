@@ -82,7 +82,10 @@ function FormNovoAgendamento({ onFechar }: { onFechar: () => void }) {
     queryFn: () => fetchPacientes({ busca: buscaDebounced, pagina: 1, porPagina: 20 }),
     enabled: buscaDebounced.trim().length > 0,
   })
-  const medicos = useQuery({ queryKey: ['medicos', 'todos'], queryFn: () => fetchMedicos(1, 100) })
+  const medicos = useQuery({
+    queryKey: ['medicos', 'todos'],
+    queryFn: () => fetchMedicos({ busca: '', pagina: 1, porPagina: 100 }),
+  })
   // O horário depende de médico e data: só busca a grade com os dois escolhidos.
   const horarios = useQuery({
     queryKey: ['horarios', medicoId, data],

@@ -70,7 +70,10 @@ export function AgendamentosTable() {
     placeholderData: keepPreviousData,
   })
   // Os 6 médicos cabem numa página só.
-  const medicos = useQuery({ queryKey: ['medicos', 'todos'], queryFn: () => fetchMedicos(1, 100) })
+  const medicos = useQuery({
+    queryKey: ['medicos', 'todos'],
+    queryFn: () => fetchMedicos({ busca: '', pagina: 1, porPagina: 100 }),
+  })
   const medicoOptions = (medicos.data?.itens ?? []).map((m) => ({ value: m.id, label: m.nome }))
 
   const queryClient = useQueryClient()

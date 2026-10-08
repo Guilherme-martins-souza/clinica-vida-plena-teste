@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { regexDeBusca } from '../busca';
 import { horariosDoDia } from '../consultas/horarios';
 import { HttpError } from '../errors';
 import { ehDataIso } from '../fuso';
@@ -15,12 +16,20 @@ interface MedicoResposta {
   grade: HorarioGrade[];
 }
 
-// Lista paginada por nome. A trava versaoAgenda é interna e não vai na resposta.
+const filtroSchema = z.object({ busca: z.string().trim().optional() });
+
+// Lista paginada por nome, com ?busca= por trecho do nome. A trava versaoAgenda é interna e não vai na resposta.
 medicosRouter.get('/', async (req, res) => {
   const paginacao = lerPaginacao(req.query);
+  const lido = filtroSchema.safeParse(req.query);
+  if (!lido.success) {
+    throw new HttpError(400, 'FILTRO_INVALIDO', 'Informe busca uma vez só, com um trecho do nome.');
+  }
+  const { busca } = lido.data;
+  const filtro = busca ? { nome: regexDeBusca(busca) } : {};
   const [medicos, total] = await Promise.all([
-    Medico.find().sort({ nome: 1, _id: 1 }).skip(inicioDaPagina(paginacao)).limit(paginacao.porPagina).lean(),
-    Medico.countDocuments(),
+    Medico.find(filtro).sort({ nome: 1, _id: 1 }).skip(inicioDaPagina(paginacao)).limit(paginacao.porPagina).lean(),
+    Medico.countDocuments(filtro),
   ]);
 
   const pagina: Pagina<MedicoResposta> = {

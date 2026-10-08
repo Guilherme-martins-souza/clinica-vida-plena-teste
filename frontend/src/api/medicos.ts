@@ -12,6 +12,13 @@ export type GradeItem = { dia: DiaSemana; inicio: string; fim: string }
 
 export type MedicoComGrade = Medico & { grade: GradeItem[] }
 
+export type FiltroMedicos = {
+  /** Trecho do nome; a API ignora maiúsculas e acentos. */
+  busca: string
+  pagina: number
+  porPagina: number
+}
+
 /** Lança um erro claro quando a API devolve algo fora do formato esperado. */
 function formatoInvalido(): never {
   throw new Error('A API devolveu os médicos num formato inesperado.')
@@ -45,9 +52,11 @@ function toMedico(item: unknown): MedicoComGrade {
   }
 }
 
-/** Uma página dos médicos, em ordem de nome (a API já devolve nessa ordem). */
-export async function fetchMedicos(pagina: number, porPagina: number): Promise<Pagina<MedicoComGrade>> {
-  const params = new URLSearchParams({ pagina: String(pagina), porPagina: String(porPagina) })
+/** Uma página dos médicos, em ordem de nome (a API já devolve nessa ordem), filtrada pela busca. */
+export async function fetchMedicos(filtro: FiltroMedicos): Promise<Pagina<MedicoComGrade>> {
+  const params = new URLSearchParams({ pagina: String(filtro.pagina), porPagina: String(filtro.porPagina) })
+  const busca = filtro.busca.trim()
+  if (busca) params.set('busca', busca)
   const corpo = await getJson(`/api/medicos?${params}`)
   if (!isJsonObject(corpo) || !Array.isArray(corpo.itens)) return formatoInvalido()
   return {

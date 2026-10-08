@@ -60,6 +60,14 @@ describe('GET /api/medicos (MED-01)', () => {
     });
   });
 
+  it('?busca= filtra por trecho do nome, ignorando maiúsculas e acentos', async () => {
+    const res = await request(app).get('/api/medicos?busca=medico 12');
+
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(1);
+    expect(res.body.itens[0].nome).toBe('Médico 12');
+  });
+
   it('página 2 traz os 2 restantes', async () => {
     const res = await request(app).get('/api/medicos?pagina=2');
 
