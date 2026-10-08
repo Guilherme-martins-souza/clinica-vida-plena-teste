@@ -1,8 +1,10 @@
-import { Alert, Anchor, Card, EmptyState, Skeleton, Table } from '@mantine/core'
+import { Alert, Anchor, Button, Card, EmptyState, Skeleton, Table } from '@mantine/core'
 import { useQuery } from '@tanstack/react-query'
-import { FileSpreadsheet } from 'lucide-react'
+import { Eye, FileSpreadsheet } from 'lucide-react'
+import type { MouseEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { fetchImportacoes, type ImportacaoResumo } from '../../api/importacoes'
+import { AvisoCard } from '../../components/AvisoCard'
 import { PageHeader } from '../../components/PageHeader'
 import { formatDateTime, formatInteger } from '../../lib/format'
 import { ORIGEM_LABELS } from '../../lib/importacao'
@@ -41,9 +43,20 @@ export function ImportacoesPage() {
           description="A importação dos arquivos de data/ roda sozinha ao subir o sistema. Quando terminar, ela aparece aqui."
         />
       )}
-      {query.isSuccess && query.data.length > 0 && <ImportacoesTabela importacoes={query.data} />}
+      {query.isSuccess && query.data.length > 0 && (
+        <>
+          <AvisoCard tom="info">Clique em uma importação para visualizar detalhes.</AvisoCard>
+          <ImportacoesTabela importacoes={query.data} />
+        </>
+      )}
     </>
   )
+}
+
+// O clique no link ou no botão já navega; sem isto o clique sobe para a linha e navega de novo,
+// deixando duas entradas iguais no histórico do navegador.
+function naoSobeParaALinha(event: MouseEvent) {
+  event.stopPropagation()
 }
 
 function ImportacoesTabela({ importacoes }: { importacoes: ImportacaoResumo[] }) {
@@ -51,7 +64,7 @@ function ImportacoesTabela({ importacoes }: { importacoes: ImportacaoResumo[] })
 
   return (
     <Card component="section" padding={0} className={tableClasses.card}>
-      <Table.ScrollContainer minWidth="50rem" type="native">
+      <Table.ScrollContainer minWidth="58rem" type="native">
         <Table
           highlightOnHover
           tabularNums
@@ -68,13 +81,14 @@ function ImportacoesTabela({ importacoes }: { importacoes: ImportacaoResumo[] })
               <Table.Th className={classes.numero}>Importadas</Table.Th>
               <Table.Th className={classes.numero}>Corrigidas</Table.Th>
               <Table.Th className={classes.numero}>Descartadas</Table.Th>
+              <Table.Th className={classes.acoes}>Ações</Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
             {importacoes.map((i) => (
               <Table.Tr key={i.id} className={classes.row} onClick={() => navigate(`/importacoes/${i.id}`)}>
                 <Table.Td>
-                  <Anchor component={Link} to={`/importacoes/${i.id}`} fw={500}>
+                  <Anchor component={Link} to={`/importacoes/${i.id}`} fw={500} onClick={naoSobeParaALinha}>
                     {formatDateTime(i.iniciadaEm)}
                   </Anchor>
                 </Table.Td>
@@ -86,6 +100,16 @@ function ImportacoesTabela({ importacoes }: { importacoes: ImportacaoResumo[] })
                 <Table.Td className={classes.numero}>{total(i.totais?.importadas)}</Table.Td>
                 <Table.Td className={classes.numero}>{total(i.totais?.corrigidas)}</Table.Td>
                 <Table.Td className={classes.numero}>{total(i.totais?.descartadas)}</Table.Td>
+                <Table.Td className={classes.acoes}>
+                  <Button
+                    component={Link}
+                    to={`/importacoes/${i.id}`}
+                    leftSection={<Eye size={16} strokeWidth={1.75} />}
+                    onClick={naoSobeParaALinha}
+                  >
+                    Ver detalhes
+                  </Button>
+                </Table.Td>
               </Table.Tr>
             ))}
           </Table.Tbody>
