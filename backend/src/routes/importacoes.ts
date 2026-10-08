@@ -26,10 +26,19 @@ async function buscarImportacao(id: string, campos: string): Promise<ImportacaoD
   return importacao;
 }
 
-// Lista sem as linhas descartadas, da mais recente para a mais antiga.
-importacoesRouter.get('/', async (_req, res) => {
-  const importacoes = await Importacao.find().select('-descartes').sort({ iniciadaEm: -1 });
-  res.json(importacoes.map(paraResposta));
+// Lista paginada sem as linhas descartadas, da mais recente para a mais antiga.
+importacoesRouter.get('/', async (req, res) => {
+  const paginacao = lerPaginacao(req.query);
+  const [importacoes, total] = await Promise.all([
+    Importacao.find()
+      .select('-descartes')
+      .sort({ iniciadaEm: -1, _id: -1 })
+      .skip(inicioDaPagina(paginacao))
+      .limit(paginacao.porPagina),
+    Importacao.countDocuments(),
+  ]);
+
+  res.json({ itens: importacoes.map(paraResposta), total, ...paginacao });
 });
 
 // Detalhe sem as linhas descartadas: elas vêm paginadas em /:id/descartes.

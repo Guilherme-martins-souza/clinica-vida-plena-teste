@@ -72,7 +72,7 @@ export async function montarFiltro(f: FiltroConsultas, agora: Date): Promise<Que
 }
 
 // Primeira consulta de cada paciente: a de menor início entre as não canceladas. Devolve os ids dessas consultas.
-async function primeirasConsultas(pacienteIds: string[]): Promise<Set<string>> {
+export async function primeirasConsultas(pacienteIds: string[]): Promise<Set<string>> {
   const primeiras = await Consulta.aggregate<{ _id: string; primeira: unknown }>([
     { $match: { pacienteId: { $in: pacienteIds }, status: { $nin: CANCELADAS } } },
     { $sort: { inicio: 1 } },

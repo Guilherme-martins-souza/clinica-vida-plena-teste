@@ -3,8 +3,38 @@ import { z } from 'zod';
 import { horariosDoDia } from '../consultas/horarios';
 import { HttpError } from '../errors';
 import { ehDataIso } from '../fuso';
+import { Medico, type HorarioGrade } from '../models/medico';
+import { inicioDaPagina, lerPaginacao, type Pagina } from '../paginacao';
 
 export const medicosRouter = Router();
+
+interface MedicoResposta {
+  id: string;
+  nome: string;
+  especialidade: string;
+  grade: HorarioGrade[];
+}
+
+// Lista paginada por nome. A trava versaoAgenda é interna e não vai na resposta.
+medicosRouter.get('/', async (req, res) => {
+  const paginacao = lerPaginacao(req.query);
+  const [medicos, total] = await Promise.all([
+    Medico.find().sort({ nome: 1, _id: 1 }).skip(inicioDaPagina(paginacao)).limit(paginacao.porPagina).lean(),
+    Medico.countDocuments(),
+  ]);
+
+  const pagina: Pagina<MedicoResposta> = {
+    itens: medicos.map((medico) => ({
+      id: medico._id,
+      nome: medico.nome,
+      especialidade: medico.especialidade,
+      grade: medico.grade.map(({ dia, inicio, fim }) => ({ dia, inicio, fim })),
+    })),
+    total,
+    ...paginacao,
+  };
+  res.json(pagina);
+});
 
 const horariosSchema = z.object({ data: z.string().refine(ehDataIso) });
 

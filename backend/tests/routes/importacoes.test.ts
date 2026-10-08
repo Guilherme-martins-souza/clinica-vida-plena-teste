@@ -83,14 +83,14 @@ afterAll(async () => {
 });
 
 describe('GET /api/importacoes', () => {
-  it('lista vazia responde []', async () => {
+  it('lista vazia responde página sem itens', async () => {
     const res = await request(app).get('/api/importacoes');
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual([]);
+    expect(res.body).toEqual({ itens: [], total: 0, pagina: 1, porPagina: 10 });
   });
 
-  it('lista da mais recente para a mais antiga, com id, origem, situação, início, fim e totais e sem descartes', async () => {
+  it('lista paginada da mais recente para a mais antiga, com id, origem, situação, início, fim e totais e sem descartes', async () => {
     const antiga = await Importacao.create(concluida('2026-10-01T12:00:00Z'));
     const recente = await Importacao.create(falhou('2026-10-07T12:00:00Z'));
     const meio = await Importacao.create(concluida('2026-10-03T12:00:00Z'));
@@ -98,12 +98,15 @@ describe('GET /api/importacoes', () => {
     const res = await request(app).get('/api/importacoes');
 
     expect(res.status).toBe(200);
-    expect(res.body.map((item: { id: string }) => item.id)).toEqual([
+    expect(res.body.total).toBe(3);
+    expect(res.body.pagina).toBe(1);
+    expect(res.body.porPagina).toBe(10);
+    expect(res.body.itens.map((item: { id: string }) => item.id)).toEqual([
       String(recente._id),
       String(meio._id),
       String(antiga._id),
     ]);
-    expect(res.body[2]).toMatchObject({
+    expect(res.body.itens[2]).toMatchObject({
       id: String(antiga._id),
       origem: 'automatica',
       situacao: 'concluida',
@@ -111,9 +114,30 @@ describe('GET /api/importacoes', () => {
       finalizadaEm: '2026-10-01T12:00:05.000Z',
       totais: TOTAIS,
     });
-    for (const item of res.body) {
+    for (const item of res.body.itens) {
       expect(item).not.toHaveProperty('descartes');
     }
+  });
+
+  it('pagina e porPagina escolhem o trecho, mantendo a mais recente primeiro', async () => {
+    const antiga = await Importacao.create(concluida('2026-10-01T12:00:00Z'));
+    await Importacao.create(falhou('2026-10-07T12:00:00Z'));
+    await Importacao.create(concluida('2026-10-03T12:00:00Z'));
+
+    const res = await request(app).get('/api/importacoes?pagina=2&porPagina=2');
+
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(3);
+    expect(res.body.pagina).toBe(2);
+    expect(res.body.porPagina).toBe(2);
+    expect(res.body.itens.map((item: { id: string }) => item.id)).toEqual([String(antiga._id)]);
+  });
+
+  it('porPagina=101 responde 400 PAGINACAO_INVALIDA', async () => {
+    const res = await request(app).get('/api/importacoes?porPagina=101');
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('PAGINACAO_INVALIDA');
   });
 });
 
