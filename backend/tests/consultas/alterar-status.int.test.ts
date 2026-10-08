@@ -18,6 +18,7 @@ async function consultaCom(status: StatusConsulta): Promise<string> {
     marcadaEm: new Date('2026-10-01T10:00:00-03:00'),
     canceladaEm: null,
     status,
+    consideradoFalta: false,
   });
   return String(consulta._id);
 }
@@ -55,6 +56,60 @@ describe('alterarStatus', () => {
     const gravada = await Consulta.findById(id).lean();
     expect(gravada?.status).toBe('confirmada');
     expect(gravada?.canceladaEm).toBeNull();
+  });
+
+  it('falta grava consideradoFalta = true (CAMPO-01 AC 2)', async () => {
+    const id = await consultaCom('agendada');
+    const depois = new Date('2026-10-12T10:00:00-03:00');
+
+    await alterarStatus(id, 'falta', depois);
+
+    const gravada = await Consulta.findById(id).lean();
+    expect(gravada?.consideradoFalta).toBe(true);
+  });
+
+  it('cancelamento do paciente a 2h do início grava consideradoFalta = true (CAMPO-01 AC 3)', async () => {
+    const id = await consultaCom('agendada');
+    const duasHorasAntes = new Date('2026-10-12T07:00:00-03:00');
+
+    const consulta = await alterarStatus(id, 'cancelada_paciente', duasHorasAntes);
+
+    expect(consulta.status).toBe('cancelada_paciente');
+    expect(consulta.consideradoFalta).toBe(true);
+    const gravada = await Consulta.findById(id).lean();
+    expect(gravada?.consideradoFalta).toBe(true);
+  });
+
+  it('cancelamento do paciente a 30h do início grava consideradoFalta = false (CAMPO-01 AC 4)', async () => {
+    const id = await consultaCom('agendada');
+    const trintaHorasAntes = new Date('2026-10-11T03:00:00-03:00');
+
+    await alterarStatus(id, 'cancelada_paciente', trintaHorasAntes);
+
+    const gravada = await Consulta.findById(id).lean();
+    expect(gravada?.consideradoFalta).toBe(false);
+  });
+
+  it('cancelamento da clínica a 2h do início grava consideradoFalta = false (CAMPO-01 AC 4)', async () => {
+    const id = await consultaCom('agendada');
+    const duasHorasAntes = new Date('2026-10-12T07:00:00-03:00');
+
+    await alterarStatus(id, 'cancelada_clinica', duasHorasAntes);
+
+    const gravada = await Consulta.findById(id).lean();
+    expect(gravada?.consideradoFalta).toBe(false);
+  });
+
+  it('confirmada e realizada gravam consideradoFalta = false', async () => {
+    const confirmada = await consultaCom('agendada');
+    const realizada = await consultaCom('confirmada');
+    const depois = new Date('2026-10-12T10:00:00-03:00');
+
+    await alterarStatus(confirmada, 'confirmada', ANTES);
+    await alterarStatus(realizada, 'realizada', depois);
+
+    expect((await Consulta.findById(confirmada).lean())?.consideradoFalta).toBe(false);
+    expect((await Consulta.findById(realizada).lean())?.consideradoFalta).toBe(false);
   });
 
   it('duas trocas concorrentes a partir de agendada: só uma vale, a outra é 409 STATUS_ALTERADO (AGD-02 AC 8)', async () => {

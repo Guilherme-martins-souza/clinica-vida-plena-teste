@@ -1,14 +1,24 @@
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { app } from '../../src/app';
+import { calcularConsideradoFalta } from '../../src/consultas/considerado-falta';
 import { Consulta, type StatusConsulta } from '../../src/models/consulta';
 import { Paciente } from '../../src/models/paciente';
 import { conectarBancoDeTeste, desconectar, limparBanco } from '../helpers/mongo';
 
 const HORA = 60 * 60 * 1000;
 
-async function consulta(pacienteId: string, dataHora: string, status: StatusConsulta, canceladaHorasAntes?: number) {
+// `consideradoFalta` é gravado por quem escreve a consulta; aqui segue a mesma função, a não ser que o teste force.
+async function consulta(
+  pacienteId: string,
+  dataHora: string,
+  status: StatusConsulta,
+  canceladaHorasAntes?: number,
+  forcarConsideradoFalta?: boolean,
+) {
   const inicio = new Date(`${dataHora}:00-03:00`);
+  const canceladaEm =
+    canceladaHorasAntes === undefined ? null : new Date(inicio.getTime() - canceladaHorasAntes * HORA);
   await Consulta.create({
     codigoLegado: null,
     pacienteId,
@@ -16,8 +26,9 @@ async function consulta(pacienteId: string, dataHora: string, status: StatusCons
     tipoAtendimento: 'convenio',
     inicio,
     marcadaEm: null,
-    canceladaEm: canceladaHorasAntes === undefined ? null : new Date(inicio.getTime() - canceladaHorasAntes * HORA),
+    canceladaEm,
     status,
+    consideradoFalta: forcarConsideradoFalta ?? calcularConsideradoFalta(status, inicio, canceladaEm),
   });
 }
 
@@ -77,6 +88,15 @@ describe('GET /api/pacientes (PAC-01)', () => {
       pagina: 1,
       porPagina: 10,
     });
+  });
+
+  it('cancelamento tardio gravado com consideradoFalta = true aparece como falta (CAMPO-01 AC 6)', async () => {
+    await consulta('PAC0002', '2026-02-02T08:00', 'cancelada_paciente', 2, true);
+    await consulta('PAC0002', '2026-02-03T08:00', 'cancelada_paciente', 2, false);
+
+    const res = await request(app).get('/api/pacientes?busca=Ana');
+
+    expect(res.body.itens[0]).toMatchObject({ id: 'PAC0002', concluidas: 1, faltas: 1 });
   });
 
   it('primeiraConsulta é true só para quem não tem consulta não cancelada (só canceladas contam como nenhuma)', async () => {

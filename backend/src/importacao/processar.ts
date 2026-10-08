@@ -374,6 +374,8 @@ function avaliarLinha(
     correcoes.push('telefone_invalido');
   }
 
+  const statusFinal = status.status === '' ? 'agendada' : status.status;
+
   return {
     consulta: {
       codigoLegado: linha.id,
@@ -383,7 +385,9 @@ function avaliarLinha(
       inicio: consulta.instante,
       marcadaEm: marcacaoInvalida ? null : marcacao.instante,
       canceladaEm: null, // o CSV não tem a data do cancelamento
-      status: status.status === '' ? 'agendada' : status.status,
+      status: statusFinal,
+      // O CSV não tem data de cancelamento: só `falta` conta; cancelamentos importados ficam false.
+      consideradoFalta: statusFinal === 'falta',
     },
     correcoes,
   };

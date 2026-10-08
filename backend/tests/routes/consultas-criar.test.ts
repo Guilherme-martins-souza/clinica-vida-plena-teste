@@ -49,6 +49,7 @@ describe('POST /api/consultas', () => {
       status: 'agendada',
       codigoLegado: null,
       canceladaEm: null,
+      consideradoFalta: false,
     });
     expect(typeof res.body.id).toBe('string');
     expect(typeof res.body.marcadaEm).toBe('string');

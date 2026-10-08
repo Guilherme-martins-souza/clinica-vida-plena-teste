@@ -81,6 +81,7 @@ export async function criarConsulta(dados: NovaConsulta, agora: Date): Promise<C
             marcadaEm: agora,
             canceladaEm: null,
             status: 'agendada',
+            consideradoFalta: false,
           },
         ],
         { session },

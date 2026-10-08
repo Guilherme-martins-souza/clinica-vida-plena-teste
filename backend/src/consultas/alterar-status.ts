@@ -1,6 +1,7 @@
 import { isValidObjectId } from 'mongoose';
 import { HttpError } from '../errors';
 import { Consulta, type StatusConsulta } from '../models/consulta';
+import { calcularConsideradoFalta } from './considerado-falta';
 import type { ConsultaDoc } from './criar-consulta';
 import { validarTransicao } from './transicoes';
 
@@ -17,7 +18,9 @@ export async function alterarStatus(id: string, novo: StatusConsulta, agora: Dat
   }
 
   const cancelando = novo === 'cancelada_paciente' || novo === 'cancelada_clinica';
-  const mudancas = cancelando ? { status: novo, canceladaEm: agora } : { status: novo };
+  const canceladaEm = cancelando ? agora : consulta.canceladaEm;
+  const consideradoFalta = calcularConsideradoFalta(novo, consulta.inicio, canceladaEm);
+  const mudancas = cancelando ? { status: novo, canceladaEm, consideradoFalta } : { status: novo, consideradoFalta };
 
   // Só grava se o status ainda é o que foi lido: se outra requisição mudou antes, nada é alterado
   // e o resultado vem nulo (é um documento só, então não precisa de transação).

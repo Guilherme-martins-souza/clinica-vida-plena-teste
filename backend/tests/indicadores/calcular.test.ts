@@ -32,6 +32,7 @@ function consulta(
     marcadaEm: null,
     canceladaEm: null,
     status: 'realizada',
+    consideradoFalta: dados.status === 'falta', // quem grava a consulta preenche; aqui segue o status
     ...dados,
   };
 }
@@ -158,7 +159,11 @@ describe('cancelamentos (AC 2, D23)', () => {
   const inicio = '2026-10-12T10:00';
 
   it('cancelada_paciente a menos de 24 h do início conta como falta', () => {
-    const tardio = consulta('x', inicio, { status: 'cancelada_paciente', canceladaEm: marcada(inicio, 0, 23) });
+    const tardio = consulta('x', inicio, {
+      status: 'cancelada_paciente',
+      canceladaEm: marcada(inicio, 0, 23),
+      consideradoFalta: true,
+    });
     expect(resultado(tardio)).toBe('falta');
 
     const indicadores = calcularIndicadores(entrada({ consultas: [tardio] }));
@@ -175,6 +180,15 @@ describe('cancelamentos (AC 2, D23)', () => {
     expect(indicadores.totais.faltas).toBe(0);
     expect(indicadores.totais.canceladasPaciente).toBe(1);
     expect(indicadores.porMedico[0]).toMatchObject({ faltas: 0, concluidas: 0 });
+  });
+
+  it('cancelada_paciente a menos de 24 h mas com consideradoFalta = false não conta como falta (lê o campo)', () => {
+    const lida = consulta('x', inicio, {
+      status: 'cancelada_paciente',
+      canceladaEm: marcada(inicio, 0, 2),
+      consideradoFalta: false,
+    });
+    expect(resultado(lida)).toBe('cancelada_paciente');
   });
 
   it('cancelada_clinica 1 h antes continua cancelamento da clínica', () => {

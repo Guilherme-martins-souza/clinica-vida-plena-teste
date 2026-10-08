@@ -20,7 +20,7 @@ const periodoSchema = z
 // (o pacienteId serve para achar as primeiras consultas).
 async function consultasEntre(desde: Date, ate: Date): Promise<(ConsultaParaIndicador & { pacienteId: string })[]> {
   const consultas = await Consulta.find({ inicio: { $gte: desde, $lt: ate } })
-    .select('medicoId pacienteId tipoAtendimento inicio marcadaEm canceladaEm status')
+    .select('medicoId pacienteId tipoAtendimento inicio marcadaEm canceladaEm status consideradoFalta')
     .lean();
   return consultas.map((consulta) => ({
     id: String(consulta._id),
@@ -31,6 +31,7 @@ async function consultasEntre(desde: Date, ate: Date): Promise<(ConsultaParaIndi
     marcadaEm: consulta.marcadaEm,
     canceladaEm: consulta.canceladaEm,
     status: consulta.status,
+    consideradoFalta: consulta.consideradoFalta,
   }));
 }
 

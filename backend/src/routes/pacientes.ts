@@ -22,7 +22,7 @@ interface PacienteResposta {
 const filtroSchema = z.object({ busca: z.string().trim().optional() });
 
 // Lista paginada por nome, com ?busca= por trecho do nome. Concluídas e faltas são de todo o histórico,
-// com a mesma regra dos indicadores (cancelamento do paciente a menos de 24 h conta como falta).
+// com a mesma regra dos indicadores: o campo `consideradoFalta` da consulta.
 pacientesRouter.get('/', async (req, res) => {
   const paginacao = lerPaginacao(req.query);
   const lido = filtroSchema.safeParse(req.query);
@@ -42,7 +42,7 @@ pacientesRouter.get('/', async (req, res) => {
     pacienteId: { $in: pacientes.map((paciente) => paciente._id) },
     status: { $in: ['realizada', 'falta', 'cancelada_paciente'] },
   })
-    .select('pacienteId status inicio canceladaEm')
+    .select('pacienteId status consideradoFalta')
     .lean();
 
   // Pacientes da página que já têm alguma consulta não cancelada (para a etiqueta "1ª consulta" do agendamento).

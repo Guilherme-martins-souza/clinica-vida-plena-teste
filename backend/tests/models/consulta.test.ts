@@ -13,6 +13,7 @@ function consultaValida(): DadosConsulta {
     marcadaEm: null,
     canceladaEm: null,
     status: 'agendada',
+    consideradoFalta: false,
   };
 }
 
@@ -59,6 +60,15 @@ describe('model Consulta', () => {
     });
     expect(salva?.createdAt).toBeInstanceOf(Date);
     expect(salva?.updatedAt).toBeInstanceOf(Date);
+  });
+
+  it('consulta nova sem consideradoFalta grava false (CAMPO-01 AC 1)', async () => {
+    const { consideradoFalta: _ignorado, ...semCampo } = consultaValida();
+
+    const criada = await Consulta.create(semCampo);
+
+    const salva = await Consulta.findById(criada._id).lean();
+    expect(salva?.consideradoFalta).toBe(false);
   });
 
   it('aceita exatamente os 6 status e os 2 tipos de atendimento', () => {

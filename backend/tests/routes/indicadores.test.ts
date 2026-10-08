@@ -8,7 +8,13 @@ import { conectarBancoDeTeste, desconectar, limparBanco } from '../helpers/mongo
 // Datas em 2019/2020 formam o período testado; 2099 serve para mostrar que o que está fora do período não conta.
 // Período do teste: 06/01/2020 (segunda) a 12/01/2020 (domingo), 7 dias.
 // Período anterior: 30/12/2019 a 05/01/2020.
-async function consulta(dataHora: string, status: StatusConsulta, pacienteId = 'PAC0001', medicoId = 'MED01') {
+async function consulta(
+  dataHora: string,
+  status: StatusConsulta,
+  pacienteId = 'PAC0001',
+  medicoId = 'MED01',
+  consideradoFalta = status === 'falta',
+) {
   await Consulta.create({
     codigoLegado: null,
     pacienteId,
@@ -18,6 +24,7 @@ async function consulta(dataHora: string, status: StatusConsulta, pacienteId = '
     marcadaEm: null,
     canceladaEm: null,
     status,
+    consideradoFalta,
   });
 }
 
@@ -73,6 +80,21 @@ describe('GET /api/indicadores (IND-01)', () => {
       agendadas: 1,
       confirmadas: 1,
     });
+  });
+
+  it('cancelamento tardio gravado com consideradoFalta = true conta como falta, não como cancelamento (CAMPO-01 AC 6)', async () => {
+    // Semana de 02/03/2020 a 08/03/2020, sem outras consultas.
+    await consulta('2020-03-02T08:00', 'cancelada_paciente', 'PAC0003', 'MED01', true);
+    await consulta('2020-03-02T09:00', 'cancelada_paciente', 'PAC0004', 'MED01', false);
+
+    const res = await indicadores('de=2020-03-02&ate=2020-03-08');
+
+    expect(res.body.totais).toMatchObject({ faltas: 1, canceladasPaciente: 1, realizadas: 0 });
+    expect(res.body.porMedico).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ medico: expect.objectContaining({ id: 'MED01' }), faltas: 1, concluidas: 1 }),
+      ]),
+    );
   });
 
   it('compara com o período anterior de mesmo número de dias', async () => {

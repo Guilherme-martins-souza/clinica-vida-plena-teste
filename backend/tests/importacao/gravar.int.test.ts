@@ -15,6 +15,7 @@ function consulta(codigo: string, campos: Partial<DadosConsulta> = {}): DadosCon
     marcadaEm: new Date('2026-09-20T12:00:00Z'),
     canceladaEm: null,
     status: 'agendada',
+    consideradoFalta: false,
     ...campos,
   };
 }
@@ -31,7 +32,7 @@ function primeiraImportacao(): DadosParaGravar {
     ],
     consultas: [
       consulta('AG00001'),
-      consulta('AG00002', { pacienteId: 'PAC0002', medicoId: 'MED02', status: 'realizada' }),
+      consulta('AG00002', { pacienteId: 'PAC0002', medicoId: 'MED02', status: 'falta', consideradoFalta: true }),
     ],
   };
 }
@@ -81,7 +82,8 @@ describe('gravarDados', () => {
       codigoLegado: 'AG00002',
       pacienteId: 'PAC0002',
       medicoId: 'MED02',
-      status: 'realizada',
+      status: 'falta',
+      consideradoFalta: true,
       inicio: new Date('2026-09-28T11:00:00Z'),
     });
   });

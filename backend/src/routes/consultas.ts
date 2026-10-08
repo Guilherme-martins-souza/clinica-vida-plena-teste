@@ -22,6 +22,7 @@ function paraResposta(consulta: ConsultaDoc) {
     marcadaEm: consulta.marcadaEm,
     canceladaEm: consulta.canceladaEm,
     status: consulta.status,
+    consideradoFalta: consulta.consideradoFalta,
   };
 }
 

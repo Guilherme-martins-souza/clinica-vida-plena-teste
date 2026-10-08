@@ -23,6 +23,7 @@ export interface DadosConsulta {
   marcadaEm: Date | null;
   canceladaEm: Date | null; // a importação deixa nulo
   status: StatusConsulta;
+  consideradoFalta: boolean; // conta como falta: status `falta` ou cancelamento do paciente a menos de 24 h
 }
 
 const consultaSchema = new Schema<DadosConsulta>(
@@ -42,6 +43,7 @@ const consultaSchema = new Schema<DadosConsulta>(
     marcadaEm: { type: Date, default: null },
     canceladaEm: { type: Date, default: null },
     status: { type: String, enum: STATUS_CONSULTA, required: true },
+    consideradoFalta: { type: Boolean, default: false },
   },
   { timestamps: true },
 );

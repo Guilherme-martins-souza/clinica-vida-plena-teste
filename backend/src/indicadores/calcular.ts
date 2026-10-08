@@ -13,6 +13,7 @@ export interface ConsultaParaIndicador {
   marcadaEm: Date | null;
   canceladaEm: Date | null;
   status: StatusConsulta;
+  consideradoFalta: boolean; // já inclui o cancelamento do paciente a menos de 24 h (D23)
 }
 
 /** Faltas e consultas concluídas (realizadas + faltas) de um recorte. A taxa é calculada na tela. */
@@ -52,7 +53,7 @@ export interface Indicadores {
 
 export type Resultado = 'realizada' | 'falta' | 'cancelada_paciente' | 'cancelada_clinica';
 
-const UM_DIA_MS = 24 * 60 * 60 * 1000;
+const MS_POR_DIA = 24 * 60 * 60 * 1000;
 const MEIO_DIA_MINUTOS = 12 * 60;
 const DIAS_UTEIS: DiaSemana[] = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
 
@@ -65,20 +66,18 @@ const FAIXAS = [
 ];
 
 /**
- * O que a consulta conta nos indicadores. Cancelamento do paciente a menos de 24 h do início conta
- * como falta (D23). Agendada e confirmada ainda não têm resultado (null).
+ * O que a consulta conta nos indicadores. Quem decide se é falta (inclusive o cancelamento do
+ * paciente a menos de 24 h, D23) é o campo `consideradoFalta`, gravado quando a consulta muda.
+ * Agendada e confirmada ainda não têm resultado (null).
  */
-export function resultado(
-  consulta: Pick<ConsultaParaIndicador, 'status' | 'inicio' | 'canceladaEm'>,
-): Resultado | null {
-  const { status, inicio, canceladaEm } = consulta;
-  if (status === 'agendada' || status === 'confirmada') {
-    return null;
-  }
-  if (status === 'cancelada_paciente' && canceladaEm && inicio.getTime() - canceladaEm.getTime() < UM_DIA_MS) {
+export function resultado(consulta: Pick<ConsultaParaIndicador, 'status' | 'consideradoFalta'>): Resultado | null {
+  if (consulta.consideradoFalta) {
     return 'falta';
   }
-  return status;
+  if (consulta.status === 'agendada' || consulta.status === 'confirmada') {
+    return null;
+  }
+  return consulta.status;
 }
 
 function zerada(): ContagemFaltas {
@@ -166,7 +165,7 @@ export function calcularIndicadores(entrada: EntradaIndicadores): Indicadores {
 
     // Sem data de marcação (parte do histórico), a consulta fica fora deste recorte.
     if (consulta.marcadaEm) {
-      const dias = Math.floor((consulta.inicio.getTime() - consulta.marcadaEm.getTime()) / UM_DIA_MS);
+      const dias = Math.floor((consulta.inicio.getTime() - consulta.marcadaEm.getTime()) / MS_POR_DIA);
       const faixa = FAIXAS.findIndex((item) => dias <= item.ate);
       somar(porFaixa[faixa], ehFalta);
     }

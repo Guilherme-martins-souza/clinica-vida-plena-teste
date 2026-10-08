@@ -140,6 +140,34 @@ describe('correções e consultas montadas', () => {
     expect(resultado.consultas[0].canceladaEm).toBeNull();
   });
 
+  it('status faltou grava consideradoFalta = true e os demais status gravam false (CAMPO-01 AC 5)', () => {
+    const passada = { data_agendamento: '2026-09-20 08:00', data_consulta: '2026-09-21 08:00' };
+    const status = ['faltou', 'realizada', 'cancelada_paciente', 'cancelada_clinica'];
+
+    const resultado = processar(
+      status
+        .map((valor, indice) =>
+          linha(indice + 2, {
+            ...passada,
+            status: valor,
+            paciente_id: `PAC000${indice + 1}`,
+            data_consulta: `2026-09-21 ${String(indice + 7).padStart(2, '0')}:00`,
+          }),
+        )
+        .concat(REFERENCIA),
+      MEDICOS,
+    );
+
+    expect(
+      resultado.consultas.filter((c) => c.codigoLegado !== 'AGREF').map((c) => [c.status, c.consideradoFalta]),
+    ).toEqual([
+      ['falta', true],
+      ['realizada', false],
+      ['cancelada_paciente', false],
+      ['cancelada_clinica', false],
+    ]);
+  });
+
   it('monta a consulta com os valores normalizados e conta cada correção da linha', () => {
     const resultado = processar(
       [
@@ -168,6 +196,7 @@ describe('correções e consultas montadas', () => {
       marcadaEm: new Date('2026-09-20T12:15:00.000Z'),
       canceladaEm: null,
       status: 'confirmada',
+      consideradoFalta: false,
     });
     expect(resultado.consultas.find((c) => c.codigoLegado === 'AG00011')?.status).toBe('cancelada_clinica');
     expect(resultado.correcoesPorTipo).toEqual({

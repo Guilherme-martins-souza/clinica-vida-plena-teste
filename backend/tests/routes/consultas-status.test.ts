@@ -18,6 +18,7 @@ async function consultaCom(status: StatusConsulta, inicio: Date): Promise<string
     marcadaEm: new Date('2019-12-01T10:00:00-03:00'),
     canceladaEm: null,
     status,
+    consideradoFalta: false,
   });
   return String(consulta._id);
 }
@@ -74,6 +75,29 @@ describe('PATCH /api/consultas/:id/status', () => {
     expect(gravada?.canceladaEm?.getTime()).toBeGreaterThanOrEqual(antes);
     expect(gravada?.canceladaEm?.getTime()).toBeLessThanOrEqual(Date.now());
     expect(res.body.canceladaEm).toBe(gravada?.canceladaEm?.toISOString());
+  });
+
+  it('a resposta traz consideradoFalta: true na falta (CAMPO-01 AC 8)', async () => {
+    const res = await patch(await consultaCom('agendada', PASSADO), { status: 'falta' });
+
+    expect(res.body.consideradoFalta).toBe(true);
+  });
+
+  it('a resposta traz consideradoFalta: false na confirmação (CAMPO-01 AC 8)', async () => {
+    const res = await patch(await consultaCom('agendada', FUTURO), { status: 'confirmada' });
+
+    expect(res.body.consideradoFalta).toBe(false);
+  });
+
+  it('cancelamento do paciente a menos de 24 h responde com consideradoFalta: true (CAMPO-01 AC 3)', async () => {
+    const proximo = new Date(Date.now() + 2 * 60 * 60 * 1000);
+    proximo.setMinutes(0, 0, 0);
+    const id = await consultaCom('agendada', proximo);
+
+    const res = await patch(id, { status: 'cancelada_paciente' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.consideradoFalta).toBe(true);
   });
 
   it.each<StatusConsulta>(['realizada', 'falta', 'cancelada_paciente', 'cancelada_clinica'])(
