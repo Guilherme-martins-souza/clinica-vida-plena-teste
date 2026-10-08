@@ -1,32 +1,51 @@
-import { Button, Card, Group, Select, Table, Text, Title } from '@mantine/core'
-import { Download } from 'lucide-react'
+import { Alert, Button, Card, Group, Select, Table, Text, Title } from '@mantine/core'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { ChevronLeft, ChevronRight, Download } from 'lucide-react'
 import { useState } from 'react'
-import { urlCsvDescartes, type Descarte, type MotivoDescarte } from '../../api/importacoes'
+import { fetchDescartes, urlCsvDescartes, type MotivoDescarte } from '../../api/importacoes'
 import { formatInteger } from '../../lib/format'
-import { filtrarDescartes, MOTIVO_LABELS } from '../../lib/importacao'
+import { MOTIVO_LABELS } from '../../lib/importacao'
 // Mesmo visual da tabela de agendamentos (estilo DataTable do design system).
 import tableClasses from '../indicadores/AgendamentosTable.module.css'
 import classes from './DescartesTable.module.css'
 
+const POR_PAGINA = 30
+
 type DescartesTableProps = {
   importacaoId: string
-  descartes: Descarte[]
+  /** Contagem por motivo, já calculada na importação: monta as opções do filtro sem buscar as linhas. */
+  descartesPorMotivo: Partial<Record<MotivoDescarte, number>>
 }
 
 function isMotivo(value: string | null): value is MotivoDescarte {
   return value !== null && value in MOTIVO_LABELS
 }
 
-/** Linhas do CSV que não entraram, com filtro por motivo e o download do CSV. */
-export function DescartesTable({ importacaoId, descartes }: DescartesTableProps) {
+/** Linhas do CSV que não entraram, paginadas no backend, com filtro por motivo e o download do CSV. */
+export function DescartesTable({ importacaoId, descartesPorMotivo }: DescartesTableProps) {
   const [motivo, setMotivo] = useState<MotivoDescarte | null>(null)
-  const linhas = filtrarDescartes(descartes, motivo)
+  const [pagina, setPagina] = useState(1)
+
+  const filtro = { motivo, pagina, porPagina: POR_PAGINA }
+  const query = useQuery({
+    queryKey: ['importacoes', importacaoId, 'descartes', filtro],
+    queryFn: () => fetchDescartes(importacaoId, filtro),
+    placeholderData: keepPreviousData, // mantém a página anterior na tela enquanto a próxima carrega
+  })
+
+  const total = query.data?.total ?? 0
+  const linhas = query.data?.itens ?? []
+  const inicio = total === 0 ? 0 : (pagina - 1) * POR_PAGINA + 1
+  const fim = Math.min(pagina * POR_PAGINA, total)
 
   // Opções do filtro: só os motivos que aparecem nesta importação, na ordem das regras, com a contagem.
-  const motivoOptions = Object.entries(MOTIVO_LABELS)
-    .map(([value, label]) => ({ value, label, total: descartes.filter((d) => d.motivo === value).length }))
-    .filter((o) => o.total > 0)
-    .map((o) => ({ value: o.value, label: `${o.label} (${formatInteger(o.total)})` }))
+  let totalGeral = 0
+  const motivoOptions: { value: string; label: string }[] = []
+  for (const [value, label] of Object.entries(MOTIVO_LABELS)) {
+    const n = isMotivo(value) ? (descartesPorMotivo[value] ?? 0) : 0
+    totalGeral += n
+    if (n > 0) motivoOptions.push({ value, label: `${label} (${formatInteger(n)})` })
+  }
 
   return (
     <Card component="section" padding={0} className={tableClasses.card}>
@@ -34,9 +53,7 @@ export function DescartesTable({ importacaoId, descartes }: DescartesTableProps)
         <Title order={2} fz="lg" lh="1.5rem">
           Linhas descartadas
           <Text span fz="sm" fw={400} c="dimmed" ml="xs" className={tableClasses.num}>
-            {motivo
-              ? `${formatInteger(linhas.length)} de ${formatInteger(descartes.length)}`
-              : formatInteger(descartes.length)}
+            {motivo ? `${formatInteger(total)} de ${formatInteger(totalGeral)}` : formatInteger(totalGeral)}
           </Text>
         </Title>
         <Group gap="xs" className={classes.acoes}>
@@ -45,7 +62,10 @@ export function DescartesTable({ importacaoId, descartes }: DescartesTableProps)
             placeholder="Todos os motivos"
             data={motivoOptions}
             value={motivo}
-            onChange={(v) => setMotivo(isMotivo(v) ? v : null)}
+            onChange={(v) => {
+              setMotivo(isMotivo(v) ? v : null)
+              setPagina(1)
+            }}
             clearable
             className={classes.motivo}
           />
@@ -59,6 +79,12 @@ export function DescartesTable({ importacaoId, descartes }: DescartesTableProps)
           </Button>
         </Group>
       </Group>
+
+      {query.isError && (
+        <Alert color="red" title="Não foi possível carregar as linhas descartadas" mx="md" mb="md">
+          {query.error.message}
+        </Alert>
+      )}
 
       <Table.ScrollContainer minWidth="45rem" type="native">
         <Table
@@ -91,7 +117,7 @@ export function DescartesTable({ importacaoId, descartes }: DescartesTableProps)
                 <Table.Td>{MOTIVO_LABELS[d.motivo]}</Table.Td>
               </Table.Tr>
             ))}
-            {linhas.length === 0 && (
+            {query.isSuccess && linhas.length === 0 && (
               <Table.Tr>
                 <Table.Td colSpan={5}>
                   <Text c="dimmed" ta="center" py="md">
@@ -103,6 +129,28 @@ export function DescartesTable({ importacaoId, descartes }: DescartesTableProps)
           </Table.Tbody>
         </Table>
       </Table.ScrollContainer>
+
+      <Group justify="space-between" gap="sm" className={tableClasses.foot}>
+        <span className={tableClasses.num}>
+          {inicio}–{fim} de {formatInteger(total)}
+        </span>
+        <Group gap="xs">
+          <Button
+            leftSection={<ChevronLeft size={16} strokeWidth={1.75} />}
+            disabled={pagina === 1}
+            onClick={() => setPagina((p) => p - 1)}
+          >
+            Anterior
+          </Button>
+          <Button
+            rightSection={<ChevronRight size={16} strokeWidth={1.75} />}
+            disabled={fim >= total}
+            onClick={() => setPagina((p) => p + 1)}
+          >
+            Próxima
+          </Button>
+        </Group>
+      </Group>
     </Card>
   )
 }

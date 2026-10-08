@@ -26,6 +26,7 @@ Docs: `docs/tecnologias.md`, `docs/decisoes.md`, `docs/uso-de-ia.md`.
 - Código simples e explicável, sem mágica: o usuário vem de Laravel e Vue.
 - Sempre formatar (indentar) todo arquivo criado ou alterado, inclusive HTML e CSS, com o Prettier
   (`.prettierrc.json` de cada pasta; o backend usa ponto e vírgula, o frontend não).
+- Listas sempre paginadas no backend (`lerPaginacao` de `backend/src/paginacao.ts`): 10 por página por padrão.
 - Erros do backend sempre em JSON: `{ error: { code, message } }` (lançar `HttpError` de `backend/src/errors.ts`).
 - `backend/src/app.ts` não faz listen nem lê env, para os testes rodarem sem Mongo.
 

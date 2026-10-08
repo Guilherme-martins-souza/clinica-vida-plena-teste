@@ -1,4 +1,4 @@
-import type { Descarte, MotivoDescarte, OrigemImportacao, SituacaoImportacao, TipoCorrecao } from '../api/importacoes'
+import type { MotivoDescarte, OrigemImportacao, SituacaoImportacao, TipoCorrecao } from '../api/importacoes'
 
 // Textos da tela de importações. Como são Record completos, o build falha se faltar algum rótulo.
 
@@ -40,9 +40,4 @@ export const SITUACAO_LABELS: Record<SituacaoImportacao, string> = {
   em_andamento: 'Em andamento',
   concluida: 'Concluída',
   falhou: 'Falhou',
-}
-
-/** Só as linhas com o motivo escolhido; com `null`, todas. */
-export function filtrarDescartes(descartes: Descarte[], motivo: MotivoDescarte | null): Descarte[] {
-  return motivo ? descartes.filter((d) => d.motivo === motivo) : descartes
 }

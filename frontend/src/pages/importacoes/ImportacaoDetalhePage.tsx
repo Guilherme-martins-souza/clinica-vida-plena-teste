@@ -166,7 +166,7 @@ function DetalheConcluida({ importacao, totais }: { importacao: ImportacaoDetalh
         </Card>
       </SimpleGrid>
 
-      <DescartesTable importacaoId={importacao.id} descartes={importacao.descartes} />
+      <DescartesTable importacaoId={importacao.id} descartesPorMotivo={importacao.descartesPorMotivo} />
     </>
   )
 }

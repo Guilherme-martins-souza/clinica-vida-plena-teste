@@ -1,4 +1,5 @@
 import { getJson, isJsonObject, type JsonObject } from './http'
+import type { Pagina } from './types'
 
 // Tipos e buscas da API de importações (GET /api/importacoes).
 // Os nomes dos campos são os mesmos do backend (backend/src/models/importacao.ts).
@@ -67,7 +68,6 @@ export type ImportacaoDetalhe = ImportacaoResumo & {
   descartesPorMotivo: Partial<Record<MotivoDescarte, number>>
   correcoesPorTipo: Partial<Record<TipoCorrecao, number>>
   slotsDuplos: { medicoId: string; inicio: Date; codigos: string[] }[]
-  descartes: Descarte[]
 }
 
 /** Lança um erro claro quando a API devolve algo fora do formato esperado. */
@@ -167,7 +167,6 @@ function toDetalhe(item: unknown): ImportacaoDetalhe {
     descartesPorMotivo: toContagens<MotivoDescarte>(item.descartesPorMotivo),
     correcoesPorTipo: toContagens<TipoCorrecao>(item.correcoesPorTipo),
     slotsDuplos: Array.isArray(item.slotsDuplos) ? item.slotsDuplos.map(toSlotDuplo) : [],
-    descartes: Array.isArray(item.descartes) ? item.descartes.map(toDescarte) : [],
   }
 }
 
@@ -180,6 +179,27 @@ export async function fetchImportacoes(): Promise<ImportacaoResumo[]> {
 
 export async function fetchImportacao(id: string): Promise<ImportacaoDetalhe> {
   return toDetalhe(await getJson(`/api/importacoes/${encodeURIComponent(id)}`))
+}
+
+export type FiltroDescartes = {
+  motivo: MotivoDescarte | null
+  pagina: number
+  porPagina: number
+}
+
+/** Uma página das linhas descartadas, na ordem do arquivo; a paginação e o filtro rodam no backend. */
+export async function fetchDescartes(id: string, filtro: FiltroDescartes): Promise<Pagina<Descarte>> {
+  const params = new URLSearchParams({ pagina: String(filtro.pagina), porPagina: String(filtro.porPagina) })
+  if (filtro.motivo) params.set('motivo', filtro.motivo)
+
+  const corpo = await getJson(`/api/importacoes/${encodeURIComponent(id)}/descartes?${params}`)
+  if (!isJsonObject(corpo) || !Array.isArray(corpo.itens)) return formatoInvalido()
+  return {
+    itens: corpo.itens.map(toDescarte),
+    total: toNumber(corpo.total),
+    pagina: toNumber(corpo.pagina),
+    porPagina: toNumber(corpo.porPagina),
+  }
 }
 
 /** Endereço do CSV das linhas descartadas, para um link de download. */

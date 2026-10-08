@@ -119,7 +119,7 @@ describe('GET /api/importacoes', () => {
 });
 
 describe('GET /api/importacoes/:id', () => {
-  it('traz o relatório completo com os descartes', async () => {
+  it('traz o relatório sem as linhas descartadas (elas vêm paginadas em /descartes)', async () => {
     const importacao = await Importacao.create(concluida('2026-10-01T12:00:00Z'));
 
     const res = await request(app).get(`/api/importacoes/${importacao._id}`);
@@ -135,7 +135,7 @@ describe('GET /api/importacoes/:id', () => {
       slotsDuplos: [],
       erro: null,
     });
-    expect(res.body.descartes).toEqual(concluida('2026-10-01T12:00:00Z').descartes);
+    expect(res.body).not.toHaveProperty('descartes');
   });
 
   it('numa importação que falhou traz a mensagem do erro', async () => {
@@ -147,8 +147,104 @@ describe('GET /api/importacoes/:id', () => {
     expect(res.body).toMatchObject({
       situacao: 'falhou',
       erro: 'Não foi possível ler o arquivo /data/medicos.json',
-      descartes: [],
     });
+  });
+});
+
+// 25 descartes: linhas 2 a 26; as de linha par são "duplicada" (13), as ímpares "fora_da_grade" (12).
+function comVinteECincoDescartes(): DadosImportacao {
+  const modelo = concluida('2026-10-01T12:00:00Z');
+  const descartes = Array.from({ length: 25 }, (_, i) => {
+    const linha = i + 2;
+    const codigo = `AG${String(linha).padStart(5, '0')}`;
+    const motivo = linha % 2 === 0 ? ('duplicada' as const) : ('fora_da_grade' as const);
+    return { linha, codigo, motivo, valores: { ...modelo.descartes[0].valores, id: codigo } };
+  });
+  return { ...modelo, descartes };
+}
+
+function linhasDe(res: request.Response): number[] {
+  return res.body.itens.map((d: { linha: number }) => d.linha);
+}
+
+function intervalo(de: number, ate: number): number[] {
+  return Array.from({ length: ate - de + 1 }, (_, i) => de + i);
+}
+
+describe('GET /api/importacoes/:id/descartes', () => {
+  it('sem parâmetros devolve a primeira página de 10, na ordem do arquivo, com o total', async () => {
+    const importacao = await Importacao.create(comVinteECincoDescartes());
+
+    const res = await request(app).get(`/api/importacoes/${importacao._id}/descartes`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ total: 25, pagina: 1, porPagina: 10 });
+    expect(linhasDe(res)).toEqual(intervalo(2, 11));
+    expect(res.body.itens[0]).toEqual(comVinteECincoDescartes().descartes[0]);
+  });
+
+  it('pagina e porPagina escolhem o trecho; a última página vem incompleta', async () => {
+    const importacao = await Importacao.create(comVinteECincoDescartes());
+    const url = `/api/importacoes/${importacao._id}/descartes`;
+
+    const segunda = await request(app).get(url).query({ pagina: 2, porPagina: 10 });
+    const terceira = await request(app).get(url).query({ pagina: 3, porPagina: 10 });
+    const deTrinta = await request(app).get(url).query({ porPagina: 30 });
+
+    expect(linhasDe(segunda)).toEqual(intervalo(12, 21));
+    expect(linhasDe(terceira)).toEqual(intervalo(22, 26));
+    expect(deTrinta.body).toMatchObject({ total: 25, pagina: 1, porPagina: 30 });
+    expect(linhasDe(deTrinta)).toEqual(intervalo(2, 26));
+  });
+
+  it('página depois da última vem vazia, com o total', async () => {
+    const importacao = await Importacao.create(comVinteECincoDescartes());
+
+    const res = await request(app).get(`/api/importacoes/${importacao._id}/descartes`).query({ pagina: 4 });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ itens: [], total: 25, pagina: 4, porPagina: 10 });
+  });
+
+  it('motivo filtra antes de paginar e o total conta só esse motivo', async () => {
+    const importacao = await Importacao.create(comVinteECincoDescartes());
+
+    const res = await request(app)
+      .get(`/api/importacoes/${importacao._id}/descartes`)
+      .query({ motivo: 'fora_da_grade', pagina: 2, porPagina: 5 });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ total: 12, pagina: 2, porPagina: 5 });
+    expect(linhasDe(res)).toEqual([13, 15, 17, 19, 21]);
+  });
+
+  it('importação que falhou responde lista vazia', async () => {
+    const importacao = await Importacao.create(falhou('2026-10-07T12:00:00Z'));
+
+    const res = await request(app).get(`/api/importacoes/${importacao._id}/descartes`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ itens: [], total: 0, pagina: 1, porPagina: 10 });
+  });
+
+  for (const query of [{ pagina: 0 }, { pagina: 'abc' }, { porPagina: 0 }, { porPagina: 101 }, { pagina: 1.5 }]) {
+    it(`responde 400 PAGINACAO_INVALIDA para ${JSON.stringify(query)}`, async () => {
+      const importacao = await Importacao.create(comVinteECincoDescartes());
+
+      const res = await request(app).get(`/api/importacoes/${importacao._id}/descartes`).query(query);
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('PAGINACAO_INVALIDA');
+    });
+  }
+
+  it('responde 400 MOTIVO_INVALIDO para motivo fora da lista', async () => {
+    const importacao = await Importacao.create(comVinteECincoDescartes());
+
+    const res = await request(app).get(`/api/importacoes/${importacao._id}/descartes`).query({ motivo: 'talvez' });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: { code: 'MOTIVO_INVALIDO', message: 'Motivo de descarte desconhecido' } });
   });
 });
 
@@ -174,7 +270,7 @@ describe('GET /api/importacoes/:id/descartes.csv', () => {
 describe('id inexistente ou inválido', () => {
   const INEXISTENTE = '6ac6ceae1bf7b5bb31afe761';
 
-  for (const rota of ['', '/descartes.csv']) {
+  for (const rota of ['', '/descartes', '/descartes.csv']) {
     for (const id of [INEXISTENTE, 'abc']) {
       it(`GET /api/importacoes/${id}${rota} responde 404 IMPORTACAO_NAO_ENCONTRADA`, async () => {
         await Importacao.create(concluida('2026-10-01T12:00:00Z'));
