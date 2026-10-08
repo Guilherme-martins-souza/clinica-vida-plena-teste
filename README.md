@@ -98,7 +98,26 @@ TODO
 
 ## Como usei IA e onde corrigi o que ela gerou
 
-TODO
+Usei o Claude como IA principal: o Claude Code (CLI) para o código e o Claude Design para idealizar o
+front. O fluxo foi sempre o mesmo: gerava o design quando necessário, trazia o objetivo e as
+melhorias a fazer, montava a especificação com a IA e a dividia em pequenas tarefas. A IA rodava
+lint, build e testes e, depois que tudo passava, eu mesmo revisava o que tinha sido construído.
+
+### Principais contribuições da IA
+
+- **Estrutura do projeto:** `backend/`, `frontend/`, Dockerfiles, `docker-compose.yml`, validação das
+  variáveis de ambiente, tratamento central de erros e health check.
+- **Importação dos dados:** leitura e padronização do CSV, regras de duplicados, conflitos, descarte e
+  correção, gravação em transação e relatório da importação.
+- **Testes**
+- **Análises e documentação**
+
+### O que precisei corrigir ou decidir diferente
+
+- **Versão do TypeScript:** a IA usou versões diferentes do TypeScript no frontend e no backend. Pedi
+  o TypeScript 7 nos dois, para ficarem na mesma versão.
+- **Uso de `any`:** a IA usava `any` em várias ações (como o `err` do Express e o `res.json()`).
+  Precisei ajustar para o modo `strict`, com a regra de nunca usar `any` garantida pelo lint.
 
 ## Telas
 
