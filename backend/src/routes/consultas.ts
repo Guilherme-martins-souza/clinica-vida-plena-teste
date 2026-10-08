@@ -5,6 +5,7 @@ import { criarConsulta, type ConsultaDoc } from '../consultas/criar-consulta';
 import { ABAS, contarAbas, listarConsultas, type FiltroConsultas } from '../consultas/listar-consultas';
 import { HttpError } from '../errors';
 import { ehDataIso } from '../fuso';
+import { enviarMensagem } from '../mensagens/enviar';
 import { STATUS_CONSULTA, TIPOS_ATENDIMENTO } from '../models/consulta';
 import { lerPaginacao } from '../paginacao';
 
@@ -82,6 +83,12 @@ consultasRouter.post('/', async (req, res) => {
   }
 
   const consulta = await criarConsulta(dados.data, new Date());
+  // A mensagem 1 não pode derrubar a criação: se falhar, só fica no log.
+  try {
+    await enviarMensagem(String(consulta._id), 'criada');
+  } catch (err) {
+    console.error('Mensagem 1 não enviada:', err);
+  }
   res.status(201).json(paraResposta(consulta));
 });
 
@@ -95,4 +102,17 @@ consultasRouter.patch('/:id/status', async (req, res) => {
 
   const consulta = await alterarStatus(req.params.id, dados.data.status, new Date());
   res.json(paraResposta(consulta));
+});
+
+const novaMensagemSchema = z.object({ tipo: z.enum(['confirmacao', 'lembrete']) });
+
+// Envio manual (botões da aba Prevenção de Faltas); pode reenviar quantas vezes quiser.
+consultasRouter.post('/:id/mensagens', async (req, res) => {
+  const dados = novaMensagemSchema.safeParse(req.body);
+  if (!dados.success) {
+    throw new HttpError(400, 'DADOS_INVALIDOS', 'Informe o tipo: confirmacao ou lembrete.');
+  }
+
+  await enviarMensagem(req.params.id, dados.data.tipo);
+  res.json({ enviada: true });
 });

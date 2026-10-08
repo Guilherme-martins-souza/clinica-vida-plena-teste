@@ -9,6 +9,8 @@ const envSchema = z.object({
   MONGODB_URI_TEST: z.string().min(1).optional(),
   // Pasta com medicos.json e agendamentos.csv (montada em /data no container).
   DATA_DIR: z.string().min(1).default('/data'),
+  // Endereço base do serviço de WhatsApp (no compose: o whatsapp-mock). Sem ele, os envios falham com 502.
+  WHATSAPP_URL: z.url().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

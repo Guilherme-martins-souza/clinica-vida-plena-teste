@@ -1,6 +1,8 @@
 import request from 'supertest';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { app } from '../../src/app';
+import { configurarEnviador } from '../../src/mensagens/enviar';
+import { textoCriada } from '../../src/mensagens/textos';
 import { Consulta } from '../../src/models/consulta';
 import { Medico } from '../../src/models/medico';
 import { Paciente } from '../../src/models/paciente';
@@ -18,7 +20,12 @@ beforeAll(async () => {
   await Promise.all([Medico.init(), Paciente.init(), Consulta.init()]);
 });
 
+const enviador = vi.fn();
+
 beforeEach(async () => {
+  enviador.mockReset().mockResolvedValue(undefined);
+  configurarEnviador(enviador);
+  vi.spyOn(console, 'error').mockImplementation(() => {});
   await limparBanco();
   await Medico.create({
     _id: 'MED01',
@@ -130,5 +137,39 @@ describe('POST /api/consultas', () => {
     expect(res.body).toEqual({
       error: { code: 'HORARIO_OCUPADO', message: 'Dr. Paulo Mendes já tem consulta às 09:00 neste dia.' },
     });
+  });
+});
+
+describe('POST /api/consultas: mensagem 1', () => {
+  it('envia a mensagem 1 com os dados, o link do calendário e o aviso das 24h', async () => {
+    const res = await request(app).post('/api/consultas').send(corpo());
+
+    expect(res.status).toBe(201);
+    expect(enviador).toHaveBeenCalledTimes(1);
+    expect(enviador).toHaveBeenCalledWith({
+      to: '53948954499',
+      tipo: 'criada',
+      text: textoCriada({ paciente: 'Maria Silva', medico: 'Dr. Paulo Mendes', inicio: new Date(FUTURO) }),
+    });
+    const texto: string = enviador.mock.calls[0][0].text;
+    expect(texto).toContain('https://calendar.google.com/calendar/render?action=TEMPLATE');
+    expect(texto).toContain('24h de antecedência');
+  });
+
+  it('enviador que falha ainda dá 201', async () => {
+    enviador.mockRejectedValue(new Error('fora do ar'));
+    const res = await request(app).post('/api/consultas').send(corpo());
+
+    expect(res.status).toBe(201);
+    expect(await Consulta.countDocuments()).toBe(1);
+  });
+
+  it('paciente sem telefone ainda dá 201 e nada é enviado', async () => {
+    const res = await request(app)
+      .post('/api/consultas')
+      .send(corpo({ pacienteId: 'PAC0002' }));
+
+    expect(res.status).toBe(201);
+    expect(enviador).not.toHaveBeenCalled();
   });
 });
