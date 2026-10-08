@@ -17,6 +17,9 @@ export interface DadosMedico {
   nome: string;
   especialidade: string;
   grade: HorarioGrade[];
+  // Trava da criação de consulta (AD-005): cada consulta nova soma 1 aqui, dentro da transação.
+  // Sem valor padrão: o $inc cria o campo na primeira consulta, e a importação grava os documentos como antes.
+  versaoAgenda?: number;
 }
 
 const horarioSchema = new Schema<HorarioGrade>(
@@ -40,6 +43,7 @@ const medicoSchema = new Schema<DadosMedico>({
   nome: { type: String, required: true },
   especialidade: { type: String, required: true },
   grade: { type: [horarioSchema], default: [] },
+  versaoAgenda: { type: Number },
 });
 
 export const Medico = model<DadosMedico>('Medico', medicoSchema, 'medicos');
