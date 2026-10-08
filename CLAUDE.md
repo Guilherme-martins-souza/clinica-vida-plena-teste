@@ -18,8 +18,8 @@ Docs: `docs/tecnologias.md`, `docs/decisoes.md`, `docs/uso-de-ia.md`.
 - Este arquivo nunca passa de 40 linhas.
 - TypeScript sempre em modo strict. Nunca usar `any`: use `unknown` + narrowing ou tipos explícitos.
 - `npm run lint` (oxlint, `no-explicit-any` como erro) e `npm run build` precisam passar em backend e frontend.
-- Tudo sobe com `docker compose up`: instalação, Mongo, backend, frontend e a importação de `data/`.
-  Nada pode exigir passo manual fora do compose.
+- Tudo sobe com `docker compose up`: instalação, Mongo, backend e frontend. A importação de `data/` NÃO roda
+  ao subir: é o comando `docker compose exec backend npm run import`. Nada além disso exige passo manual.
 - Não adicionar bibliotecas ou ferramentas sem perguntar antes.
 - Commit só quando o usuário pedir, seguindo a skill `commit` (`.claude/skills/commit/`).
 - Ao fim de cada etapa: registrar decisões em `docs/decisoes.md` e o uso/correções da IA em `docs/uso-de-ia.md`.
@@ -33,6 +33,7 @@ Docs: `docs/tecnologias.md`, `docs/decisoes.md`, `docs/uso-de-ia.md`.
 ## Comandos
 - Subir: `docker compose up --build`
 - Mudou dependência: `docker compose up --build --renew-anon-volumes`
+- Importar dados: `docker compose exec backend npm run import`
 - Testes: `docker compose exec backend npm test`
 - Lint/build: `docker compose exec backend npm run lint` (idem `frontend`, e `npm run build`)
 - Formatar: `docker compose exec frontend npm run format` (idem `backend`)

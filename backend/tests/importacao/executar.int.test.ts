@@ -2,12 +2,7 @@ import { access, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  ImportacaoEmAndamentoError,
-  executarImportacao,
-  importarSeNecessario,
-  marcarInterrompidas,
-} from '../../src/importacao/executar';
+import { ImportacaoEmAndamentoError, executarImportacao, marcarInterrompidas } from '../../src/importacao/executar';
 import { gravarDados } from '../../src/importacao/gravar';
 import { Consulta } from '../../src/models/consulta';
 import { Importacao, type DadosImportacao } from '../../src/models/importacao';
@@ -207,28 +202,6 @@ describe('executarImportacao', () => {
     expect(salva?.situacao).toBe('concluida');
     expect(salva?.arquivos).toBeNull();
     expect(salva?.totais?.importadas).toBe(2);
-  });
-});
-
-describe('importarSeNecessario', () => {
-  it('não importa quando já existe importação concluida', async () => {
-    await Importacao.create(importacaoRegistrada({ situacao: 'concluida' }));
-
-    await importarSeNecessario(dataDir);
-
-    expect(await Importacao.countDocuments()).toBe(1);
-    expect(await Consulta.countDocuments()).toBe(0);
-  });
-
-  it('importa (origem automatica) quando só existe importação que falhou', async () => {
-    await Importacao.create(importacaoRegistrada({ situacao: 'falhou', erro: 'Importação interrompida' }));
-
-    await importarSeNecessario(dataDir);
-
-    const concluidas = await Importacao.find({ situacao: 'concluida' }).lean();
-    expect(concluidas).toHaveLength(1);
-    expect(concluidas[0].origem).toBe('automatica');
-    expect(await Consulta.countDocuments()).toBe(2);
   });
 });
 

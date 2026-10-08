@@ -78,15 +78,6 @@ export async function executarImportacao({ origem, dataDir }: OpcoesImportacao):
   return importacao;
 }
 
-// Ao subir o backend: só importa se ainda não existe nenhuma importação concluída.
-export async function importarSeNecessario(dataDir: string): Promise<void> {
-  if (await Importacao.exists({ situacao: 'concluida' })) {
-    console.log('Já existe importação concluída; a importação automática não vai rodar');
-    return;
-  }
-  await executarImportacao({ origem: 'automatica', dataDir });
-}
-
 // Ao subir o backend: importações que ficaram "em andamento" são sobras de um processo que morreu.
 export async function marcarInterrompidas(): Promise<void> {
   await Importacao.updateMany(
