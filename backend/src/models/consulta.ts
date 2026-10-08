@@ -1,4 +1,5 @@
 import { Schema, model } from 'mongoose';
+import { estaNoSlot } from '../consultas/regras';
 
 export const STATUS_CONSULTA = [
   'agendada',
@@ -22,12 +23,6 @@ export interface DadosConsulta {
   marcadaEm: Date | null;
   canceladaEm: Date | null; // a importação deixa nulo
   status: StatusConsulta;
-}
-
-// Consultas ocupam slots de 30 minutos: minuto 0 ou 30, sem segundos.
-// O fuso de São Paulo é de horas inteiras, então o minuto em UTC é o mesmo do horário local.
-export function estaNoSlot(data: Date): boolean {
-  return data.getUTCMinutes() % 30 === 0 && data.getUTCSeconds() === 0 && data.getUTCMilliseconds() === 0;
 }
 
 const consultaSchema = new Schema<DadosConsulta>(

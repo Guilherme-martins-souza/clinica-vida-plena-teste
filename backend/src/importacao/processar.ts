@@ -1,4 +1,5 @@
-import { estaNoSlot, type DadosConsulta } from '../models/consulta';
+import { conflitoDeHorario, dentroDaGrade, ehAtiva, estaNoSlot } from '../consultas/regras';
+import type { DadosConsulta } from '../models/consulta';
 import {
   COLUNAS_CSV,
   type Descarte,
@@ -75,7 +76,7 @@ export function processar(linhas: LinhaCsv[], medicos: MedicoArquivo[]): Resulta
     }
   }
 
-  // 6. Horário do médico já ocupado: fica a consulta marcada primeiro; as outras são descartadas.
+  // 6. Horário do médico ou do paciente já ocupado: fica a consulta marcada primeiro; as outras são descartadas.
   const aprovadas = descartarHorariosOcupados(validas, descartar);
 
   // 7. Pacientes (só de linhas aprovadas); marca nome_padronizado nas linhas com outra grafia.
@@ -150,29 +151,37 @@ function montarPacientes(aprovadas: LinhaAprovada[]): DadosPaciente[] {
   return pacientes;
 }
 
-// Um médico não pode ter duas consultas ativas (não canceladas) no mesmo slot.
-// No histórico isso é um possível encaixe: outro paciente marcado num horário já ocupado.
-// Fica a consulta marcada primeiro; as marcadas depois saem como horario_ocupado.
+// Horário ocupado (regra comum em consultas/regras.ts): um médico não pode ter duas consultas ativas
+// no mesmo slot, nem um paciente duas consultas ativas no mesmo horário, com qualquer médico.
+// No histórico isso é um possível encaixe. Fica a consulta marcada primeiro; as marcadas depois
+// saem como horario_ocupado.
 function descartarHorariosOcupados(
   validas: LinhaAprovada[],
   descartar: (linha: LinhaCsv, motivo: MotivoDescarte) => void,
 ): LinhaAprovada[] {
-  const porSlot = new Map<string, LinhaAprovada[]>();
+  // Só consultas com o mesmo início podem conflitar, então agrupa por início.
+  const porInicio = new Map<number, LinhaAprovada[]>();
   for (const valida of validas) {
-    const { consulta } = valida;
-    if (consulta.status === 'cancelada_paciente' || consulta.status === 'cancelada_clinica') {
+    // Consulta cancelada não ocupa o horário nem é descartada por ele.
+    if (!ehAtiva(valida.consulta.status)) {
       continue;
     }
-    const chave = `${consulta.medicoId}|${consulta.inicio.toISOString()}`;
-    porSlot.set(chave, [...(porSlot.get(chave) ?? []), valida]);
+    const chave = valida.consulta.inicio.getTime();
+    porInicio.set(chave, [...(porInicio.get(chave) ?? []), valida]);
   }
 
   const descartadas = new Set<LinhaAprovada>();
-  for (const doSlot of porSlot.values()) {
-    doSlot.sort(ordemDeMarcacao);
-    for (const valida of doSlot.slice(1)) {
-      descartadas.add(valida);
-      descartar(valida.linha, 'horario_ocupado');
+  for (const doInicio of porInicio.values()) {
+    // Na ordem de marcação, cada consulta é conferida contra as que já ficaram.
+    doInicio.sort(ordemDeMarcacao);
+    const ficaram: DadosConsulta[] = [];
+    for (const valida of doInicio) {
+      if (conflitoDeHorario(valida.consulta, ficaram)) {
+        descartadas.add(valida);
+        descartar(valida.linha, 'horario_ocupado');
+      } else {
+        ficaram.push(valida.consulta);
+      }
     }
   }
   return validas.filter((valida) => !descartadas.has(valida));
@@ -289,14 +298,6 @@ const CAMPOS_OBRIGATORIOS = [
   'data_consulta',
 ] as const;
 
-const DURACAO_SLOT_MINUTOS = 30;
-
-// "07:00" -> 420
-function minutosDoDia(hora: string): number {
-  const [h, m] = hora.split(':').map(Number);
-  return h * 60 + m;
-}
-
 // Aplica as regras na ordem dos motivos. Devolve o motivo do descarte ou a consulta com as correções.
 function avaliarLinha(
   linha: LinhaCsv,
@@ -339,15 +340,7 @@ function avaliarLinha(
     return { motivo: 'fora_do_slot' };
   }
 
-  // Dentro da grade: no dia certo, começando no início ou depois, e terminando até o fim.
-  const inicioConsulta = consulta.hora * 60 + consulta.minuto;
-  const dentroDaGrade = medico.grade.some(
-    (horario) =>
-      horario.dia === consulta.diaSemana &&
-      inicioConsulta >= minutosDoDia(horario.inicio) &&
-      inicioConsulta + DURACAO_SLOT_MINUTOS <= minutosDoDia(horario.fim),
-  );
-  if (!dentroDaGrade) {
+  if (!dentroDaGrade(medico.grade, consulta.instante)) {
     return { motivo: 'fora_da_grade' };
   }
 

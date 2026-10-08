@@ -22,6 +22,8 @@ export async function limparBanco(): Promise<void> {
   }
 }
 
+// Apaga o banco deste arquivo de teste e desconecta, para não deixar clinica_test_* no Mongo.
 export async function desconectar(): Promise<void> {
+  await mongoose.connection.dropDatabase();
   await mongoose.disconnect();
 }

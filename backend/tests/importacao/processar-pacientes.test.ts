@@ -167,6 +167,35 @@ describe('horário do médico já ocupado', () => {
   });
 });
 
+describe('horário do paciente já ocupado', () => {
+  // Um terceiro médico que também atende segunda de manhã, para o paciente ter duas consultas no mesmo início.
+  const COM_MED03 = [
+    ...MEDICOS,
+    {
+      id: 'MED03',
+      nome: 'Dr. Carlos Souza',
+      especialidade: 'Ortopedia',
+      grade: [{ dia: 'segunda' as const, inicio: '07:00', fim: '12:00' }],
+    },
+  ];
+  const passada = { data_consulta: '2026-09-21 08:00', status: 'realizada', paciente_id: 'PAC0001' };
+
+  it('mesmo paciente no mesmo início com médicos diferentes: fica a marcada primeiro e a outra sai como horario_ocupado', () => {
+    const resultado = processar(
+      [
+        // No arquivo vem antes, mas foi marcada depois: é a descartada.
+        linha(2, { ...passada, id: 'AG1', medico_id: 'MED03', data_agendamento: '2026-09-15 10:00' }),
+        linha(3, { ...passada, id: 'AG2', medico_id: 'MED01', data_agendamento: '2026-09-01 10:00' }),
+        REFERENCIA,
+      ],
+      COM_MED03,
+    );
+
+    expect(resultado.consultas.map((c) => c.codigoLegado)).toEqual(['AG2', 'AGREF']);
+    expect(motivos(resultado)).toEqual({ 2: 'horario_ocupado' });
+  });
+});
+
 describe('totais e contagens', () => {
   it('soma lidas, importadas, corrigidas, descartadas, médicos e pacientes, e conta os descartes por motivo', () => {
     const resultado = processar(

@@ -7,7 +7,7 @@ import {
   type Descarte,
   type SituacaoImportacao,
 } from '../models/importacao';
-import { OFFSET_SAO_PAULO } from './normalizar';
+import { OFFSET_SAO_PAULO } from '../fuso';
 
 // Valor com vírgula, aspas ou quebra de linha vai entre aspas, com as aspas internas dobradas.
 function celulaCsv(valor: string): string {

@@ -1,10 +1,8 @@
 import type { StatusConsulta, TipoAtendimento } from '../models/consulta';
+import { OFFSET_SAO_PAULO } from '../fuso';
 import { DIAS_SEMANA, type DiaSemana } from '../models/medico';
 
-// Datas do CSV não trazem fuso: são horário de São Paulo (AD-002).
-// O Brasil não tem horário de verão desde 2019, então o deslocamento é sempre -03:00.
-// Se o horário de verão voltar, esta constante precisa virar um cálculo por data.
-export const OFFSET_SAO_PAULO = '-03:00';
+// Datas do CSV não trazem fuso: são horário de São Paulo (AD-002, deslocamento em src/fuso.ts).
 
 export interface DataHoraLocal {
   ano: number;
