@@ -5,7 +5,7 @@ import { Consulta, type StatusConsulta } from '../../src/models/consulta';
 import { Medico } from '../../src/models/medico';
 import { conectarBancoDeTeste, desconectar, limparBanco } from '../helpers/mongo';
 
-// A rota usa o relógio real: 2099 está sempre no futuro e 2019/2020, no passado.
+// Datas em 2019/2020 formam o período testado; 2099 serve para mostrar que o que está fora do período não conta.
 // Período do teste: 06/01/2020 (segunda) a 12/01/2020 (domingo), 7 dias.
 // Período anterior: 30/12/2019 a 05/01/2020.
 async function consulta(dataHora: string, status: StatusConsulta, pacienteId = 'PAC0001', medicoId = 'MED01') {
@@ -41,6 +41,7 @@ beforeEach(async () => {
   await consulta('2020-01-06T08:00', 'falta', 'PAC0002'); // primeira consulta do PAC0002
   await consulta('2020-01-12T23:30', 'realizada'); // retorno do PAC0001 (domingo)
   await consulta('2020-01-07T08:00', 'agendada'); // sem resultado
+  await consulta('2020-01-08T08:00', 'confirmada'); // sem resultado
   await consulta('2020-01-13T00:00', 'falta'); // dia seguinte: fora
 
   // Período anterior, de mesmo tamanho: 1 falta em 2 concluídas.
@@ -48,7 +49,7 @@ beforeEach(async () => {
   await consulta('2019-12-30T00:00', 'realizada');
   await consulta('2019-12-29T23:30', 'falta'); // antes do período anterior: fora
 
-  // Próximas: contam sempre, independente do período.
+  // Futuras sem resultado, mas fora do período: não contam.
   await consulta('2099-01-05T08:00', 'agendada');
   await consulta('2099-01-05T08:30', 'confirmada');
   await consulta('2099-01-05T09:00', 'cancelada_clinica');
@@ -69,8 +70,8 @@ describe('GET /api/indicadores (IND-01)', () => {
       faltas: 1,
       canceladasPaciente: 0,
       canceladasClinica: 0,
-      proximas: 2,
-      proximasSemConfirmacao: 1,
+      agendadas: 1,
+      confirmadas: 1,
     });
   });
 

@@ -54,7 +54,6 @@ function entrada(dados: Partial<EntradaIndicadores>): EntradaIndicadores {
     anteriores: [],
     medicos: MEDICOS,
     primeiras: new Set(),
-    proximas: { total: 0, semConfirmacao: 0 },
     ...dados,
   };
 }
@@ -75,14 +74,13 @@ const CONSULTAS: ConsultaParaIndicador[] = [
   consulta('g', '2026-10-12T08:00', { medicoId: 'MED02', tipoAtendimento: 'particular' }),
   consulta('h', '2026-10-17T09:00', { status: 'falta' }), // sábado: fora de dia × turno
   consulta('i', '2026-10-12T09:00', { status: 'agendada' }),
+  consulta('l', '2026-10-15T09:00', { status: 'confirmada' }),
   consulta('j', '2026-10-13T09:00', { medicoId: 'MED02', status: 'cancelada_clinica' }),
   consulta('k', '2026-10-14T10:00', { status: 'cancelada_paciente' }), // histórico: sem canceladaEm
 ];
 
 describe('calcularIndicadores com um conjunto conhecido (AC 1, 3, 9)', () => {
-  const indicadores = calcularIndicadores(
-    entrada({ consultas: CONSULTAS, primeiras: new Set(['a', 'c']), proximas: { total: 7, semConfirmacao: 3 } }),
-  );
+  const indicadores = calcularIndicadores(entrada({ consultas: CONSULTAS, primeiras: new Set(['a', 'c']) }));
 
   it('devolve o período pedido', () => {
     expect(indicadores.periodo).toEqual({ de: '2026-10-01', ate: '2026-10-31' });
@@ -94,8 +92,8 @@ describe('calcularIndicadores com um conjunto conhecido (AC 1, 3, 9)', () => {
       faltas: 3,
       canceladasPaciente: 1,
       canceladasClinica: 1,
-      proximas: 7,
-      proximasSemConfirmacao: 3,
+      agendadas: 1,
+      confirmadas: 1,
     });
   });
 

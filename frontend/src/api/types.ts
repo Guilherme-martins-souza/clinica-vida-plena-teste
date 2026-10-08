@@ -30,8 +30,8 @@ export type Indicadores = {
     faltas: number
     canceladasPaciente: number
     canceladasClinica: number
-    proximas: number
-    proximasSemConfirmacao: number
+    agendadas: number
+    confirmadas: number
   }
   /** Taxa de falta (%) do período anterior, de mesmo tamanho; null quando ele não tem consulta concluída. */
   taxaFaltaPeriodoAnterior: number | null

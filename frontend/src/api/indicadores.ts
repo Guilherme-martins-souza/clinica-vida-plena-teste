@@ -52,8 +52,8 @@ function toIndicadores(corpo: unknown): Indicadores {
       faltas: toNumber(totais.faltas),
       canceladasPaciente: toNumber(totais.canceladasPaciente),
       canceladasClinica: toNumber(totais.canceladasClinica),
-      proximas: toNumber(totais.proximas),
-      proximasSemConfirmacao: toNumber(totais.proximasSemConfirmacao),
+      agendadas: toNumber(totais.agendadas),
+      confirmadas: toNumber(totais.confirmadas),
     },
     taxaFaltaPeriodoAnterior: anterior === null ? null : toNumber(anterior),
     porMedico: toArray(dados.porMedico).map((item) => {

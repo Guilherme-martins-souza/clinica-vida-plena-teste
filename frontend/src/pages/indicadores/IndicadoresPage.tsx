@@ -10,6 +10,7 @@ import { PageHeader } from '../../components/PageHeader'
 import { PeriodFilter } from '../../components/PeriodFilter'
 import { lerPeriodoDaUrl, toDataIso } from '../../lib/periodo'
 import { StatCard } from '../../components/StatCard'
+import { STATUS_LABELS } from '../../lib/status'
 import { formatInteger, formatPercent, formatPointsDelta, rate } from '../../lib/format'
 
 /** Escala única de todas as barras da tela, para que sejam comparáveis entre si. */
@@ -17,6 +18,14 @@ const ESCALA_MAX = 40
 
 const DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex']
 const DIAS_EXTENSO = ['segunda', 'terça', 'quarta', 'quinta', 'sexta']
+
+// Os status que finalizam uma consulta (as que ainda estão agendada ou confirmada não foram finalizadas).
+const FINALIZACOES = [
+  STATUS_LABELS.realizada,
+  STATUS_LABELS.falta,
+  STATUS_LABELS.cancelada_paciente,
+  STATUS_LABELS.cancelada_clinica,
+]
 
 /** Taxa de falta em %; null quando o recorte não tem consulta concluída (a tela mostra "—"). */
 function taxaOuNull(c: ContagemFaltas): number | null {
@@ -136,9 +145,15 @@ function IndicadoresConteudo({ dados }: { dados: Indicadores }) {
           hint={`${formatInteger(totais.canceladasPaciente)} pelo paciente · ${formatInteger(totais.canceladasClinica)} pela clínica`}
         />
         <StatCard
-          label="Próximas consultas"
-          value={formatInteger(totais.proximas)}
-          hint={`${formatInteger(totais.proximasSemConfirmacao)} ainda sem confirmação`}
+          label="Consultas agendadas"
+          value={formatInteger(totais.agendadas + totais.confirmadas)}
+          hint={`${formatInteger(totais.agendadas)} agendadas · ${formatInteger(totais.confirmadas)} confirmadas`}
+          info={
+            <>
+              Consultas do período que ainda não foram finalizadas. Para finalizar, a recepção registra o status:{' '}
+              {FINALIZACOES.join(', ')}.
+            </>
+          }
         />
       </SimpleGrid>
 

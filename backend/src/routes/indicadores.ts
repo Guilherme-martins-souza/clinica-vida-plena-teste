@@ -40,7 +40,6 @@ indicadoresRouter.get('/', async (req, res) => {
     throw new HttpError(400, 'PERIODO_INVALIDO', 'Informe de e ate no formato AAAA-MM-DD, com de até ate.');
   }
   const { de, ate } = periodo.data;
-  const agora = new Date();
 
   // Período anterior: o mesmo número de dias, terminando no dia antes de "de".
   // O fuso é fixo (AD-002), então todo dia tem exatamente 24 h.
@@ -48,13 +47,10 @@ indicadoresRouter.get('/', async (req, res) => {
   const fim = inicioDoDia(diaSeguinte(ate));
   const inicioAnterior = new Date(inicio.getTime() - (fim.getTime() - inicio.getTime()));
 
-  const [consultas, anteriores, medicos, proximas, proximasSemConfirmacao] = await Promise.all([
+  const [consultas, anteriores, medicos] = await Promise.all([
     consultasEntre(inicio, fim),
     consultasEntre(inicioAnterior, inicio),
     Medico.find().sort({ nome: 1 }).lean(),
-    // Próximas não dependem do período: são as que ainda vão acontecer.
-    Consulta.countDocuments({ inicio: { $gte: agora }, status: { $in: ['agendada', 'confirmada'] } }),
-    Consulta.countDocuments({ inicio: { $gte: agora }, status: 'agendada' }),
   ]);
   const primeiras = await primeirasConsultas([...new Set(consultas.map((consulta) => consulta.pacienteId))]);
 
@@ -65,7 +61,6 @@ indicadoresRouter.get('/', async (req, res) => {
       anteriores,
       medicos,
       primeiras,
-      proximas: { total: proximas, semConfirmacao: proximasSemConfirmacao },
     }),
   );
 });

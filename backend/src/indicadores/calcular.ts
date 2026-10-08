@@ -27,7 +27,6 @@ export interface EntradaIndicadores {
   anteriores: ConsultaParaIndicador[]; // início dentro do período anterior, de mesmo tamanho
   medicos: DadosMedico[];
   primeiras: Set<string>; // ids das consultas que são a primeira do paciente
-  proximas: { total: number; semConfirmacao: number };
 }
 
 export interface Indicadores {
@@ -37,8 +36,9 @@ export interface Indicadores {
     faltas: number;
     canceladasPaciente: number;
     canceladasClinica: number;
-    proximas: number;
-    proximasSemConfirmacao: number;
+    /** Ainda sem resultado (não finalizadas), por status. */
+    agendadas: number;
+    confirmadas: number;
   };
   /** Taxa de falta (%) do período anterior; null quando ele não tem consulta concluída. */
   taxaFaltaPeriodoAnterior: number | null;
@@ -110,8 +110,8 @@ export function calcularIndicadores(entrada: EntradaIndicadores): Indicadores {
     faltas: 0,
     canceladasPaciente: 0,
     canceladasClinica: 0,
-    proximas: entrada.proximas.total,
-    proximasSemConfirmacao: entrada.proximas.semConfirmacao,
+    agendadas: 0,
+    confirmadas: 0,
   };
 
   // Uma contagem por recorte; cada consulta concluída soma nas que se aplicam a ela.
@@ -125,6 +125,11 @@ export function calcularIndicadores(entrada: EntradaIndicadores): Indicadores {
 
   for (const consulta of entrada.consultas) {
     const r = resultado(consulta);
+    if (consulta.status === 'agendada') {
+      totais.agendadas += 1;
+    } else if (consulta.status === 'confirmada') {
+      totais.confirmadas += 1;
+    }
     if (r === 'cancelada_paciente') {
       totais.canceladasPaciente += 1;
     } else if (r === 'cancelada_clinica') {
