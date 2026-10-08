@@ -317,6 +317,70 @@ Novas decisões entram no fim, numeradas.
 - **Decisão:** a lista de médicos fica num card com título, total e campo de busca por nome (`?busca=` em `GET /api/medicos`, mesma `regexDeBusca` dos pacientes).
 - **Por quê:** manter as duas telas iguais; a busca no servidor funciona com a lista paginada.
 
+## 6. Prevenção de faltas (08/10/2026)
+
+### D56. Campo `consideradoFalta` na consulta
+
+- **Decisão:** a consulta ganhou o campo booleano `consideradoFalta` (padrão `false`), que vale `true` quando o status é `falta` ou quando o paciente cancelou a menos de 24 h do início (D23). Ele é gravado na criação, na troca de status e na importação, pela função `calcularConsideradoFalta` (`backend/src/consultas/considerado-falta.ts`). Indicadores, tabela de pacientes, risco e chip "faltoso" só leem o campo e não recalculam a regra. Não existe um segundo campo "cancelou em menos de 24 horas": cancelada pelo paciente com `consideradoFalta = true` já é o cancelamento tardio, e `canceladaEm` guarda quando foi.
+- **Por quê:** antes, cada lugar refazia a conta do cancelamento tardio, e os números podiam se contradizer. Com um campo só, a contagem é a mesma em todas as telas. Dois campos poderiam divergir.
+- **Custo:** o CSV não traz a data do cancelamento, então os 306 `cancelada_paciente` importados ficam com `consideradoFalta = false` e os totais dos indicadores não mudam (1.978 faltas, 4.270 realizadas). Só cancelamentos feitos pelo sistema novo podem virar falta. Não há migração: quem já tinha o banco precisa rodar `docker compose exec backend npm run import` de novo.
+
+### D57. Risco de falta por pontos, calculado na hora
+
+- **Decisão:** o risco de cada consulta é uma soma de pontos por fator (`calcularRisco`, função pura em `backend/src/risco/calcular-risco.ts`), com pesos e cortes numa lista única em `backend/src/risco/pesos.ts`. Nada é guardado no banco: o risco é calculado a cada chamada, com o histórico do paciente anterior ao início da consulta (`realizada` + `consideradoFalta`). A tela lê pesos e cortes de `GET /api/prevencao-de-faltas/regras`, então o banner não repete números.
+
+  | Fator                                                                           | Pontos |
+  | ------------------------------------------------------------------------------- | ------ |
+  | 2 ou mais faltas, ou taxa de faltas acima de 30% (com pelo menos 1 atendimento) | 40     |
+  | Primeira consulta na clínica                                                    | 25     |
+  | Atendimento por convênio                                                        | 15     |
+  | Segunda-feira antes de 12:00 (São Paulo)                                        | 15     |
+  | Faltam menos de 48 h e a consulta está `agendada` (sem confirmação)             | 20     |
+
+  Cortes: de 0 a 24 baixo (não aparece na aba); de 25 a 49 média; de 50 a 69 alta; 70 ou mais muito alta.
+
+- **Por quê:** é simples e explicável (nada de aprendizado de máquina), e a recepção vê quais fatores somaram. Calcular na hora evita um campo que ficaria velho quando o histórico, o status ou o relógio mudam.
+- **Custo:** a aba busca as consultas dos 14 dias e corta a página em memória, o que serve para poucas centenas de consultas. Os pesos são um palpite informado, não um modelo treinado.
+
+### D58. Pesos conferidos nos dados reais
+
+- **Decisão:** os pesos da D57 foram comparados com a taxa de falta de cada recorte nas 6.248 consultas concluídas (realizadas + faltas; taxa geral de 31,7%, 1.978 faltas). Para cada consulta, o histórico e a "primeira consulta" foram calculados só com o que existia antes dela. Nenhum peso foi alterado.
+
+  | Fator                                      | Com o fator            | Sem o fator            |
+  | ------------------------------------------ | ---------------------- | ---------------------- |
+  | Histórico (2+ faltas ou taxa acima de 30%) | 34,1% (871 de 2.554)   | 30,0% (1.107 de 3.694) |
+  | Primeira consulta                          | 36,9% (558 de 1.514)   | 30,0% (1.420 de 4.734) |
+  | Convênio                                   | 32,0% (1.296 de 4.045) | 31,0% (682 de 2.203)   |
+  | Segunda-feira de manhã                     | 46,9% (306 de 653)     | 29,9% (1.672 de 5.595) |
+  | Marcada com menos de 48 h de antecedência  | 8,8% (88 de 995)       | 36,0% (1.890 de 5.253) |
+
+- **Por quê:** segunda de manhã é o fator mais forte (17 pontos percentuais acima do resto), seguido de primeira consulta (7 pontos) e histórico (4 pontos). O convênio quase não diferencia (1 ponto): ficou com o menor peso, mas segue na conta porque os pesos são um palpite a revisar, não um achado dos dados. Mudar um peso exigiria alterar spec, testes e banner, e a diferença não justificou. O fator "sem confirmação a menos de 48 h" não pode ser medido no histórico, porque o CSV não guarda a confirmação; a coluna acima mede a antecedência da marcação, que é outra coisa (consultas marcadas em cima da hora quase não faltam). Esse fator ficou como regra de negócio: consulta que ainda não foi confirmada perto do horário merece contato.
+- **Custo:** o peso do histórico (40) é o maior apesar de a diferença nos dados ser modesta (4 pontos percentuais): ele foi definido na spec, e a conta mede só o histórico anterior a cada consulta. Convênio tem pouco apoio nos dados. Os números saíram do banco depois da importação e conferem com `GET /api/indicadores` (por exemplo, convênio 1.296 de 4.045 e primeira consulta 558 de 1.514).
+
+### D59. Paciente "faltoso"
+
+- **Decisão:** o paciente é faltoso quando tem pelo menos 1 atendimento e 25% ou mais de faltas nos 5 últimos. Contam como atendimento só as consultas `realizada` ou `consideradoFalta = true` com início antes de agora, do mais recente para o mais antigo (`ehFaltoso`, em `backend/src/historico/historico.ts`). Um atendimento com falta vale 100% e marca faltoso; sem atendimento, não é faltoso. A API devolve `faltoso` nos pacientes, nas consultas e na aba, e o chip "faltoso" aparece nas tabelas de pacientes e de agendamentos.
+- **Por quê:** é a mesma regra dos indicadores (D23 e D24), então o chip não contradiz os números. Olhar só os 5 últimos faz o paciente que melhorou sair da lista.
+- **Custo:** quem só tem uma falta e nenhum outro atendimento é marcado; isso foi aceito para a recepção ter atenção também com pacientes novos que faltaram.
+
+### D60. Mensagens por WhatsApp simulado e limite de 3 envios por tipo
+
+- **Decisão:** são quatro mensagens, todas começando por "Clínica Vida Plena": 1 (consulta criada, com o link do Google Calendar e o aviso de cancelamento com 24 h de antecedência), 2 (pedido de confirmação, quando faltam 72 h ou menos), 3 (lembrete, quando faltam 36 h ou menos e a consulta está `agendada`) e 4 (vaga disponível). As mensagens 2, 3 e 4 terminam com "Responda: 1 - Confirmar, 2 - Remarcar, 3 - Cancelar", só como texto: o backend não lê respostas. Um agendador (`setInterval` de 1 minuto no `server.ts`, com `agora` por parâmetro) envia as mensagens 2 e 3. Ele guarda em memória o que já enviou e envia no máximo 3 por tipo por execução do backend; reiniciar libera mais 3. Os botões da aba enviam sem esse limite e podem reenviar. A falha do mock não derruba a criação da consulta (a rota responde 201) nem o agendador (tenta de novo na rodada seguinte); no envio manual responde 502 `MENSAGEM_NAO_ENVIADA`, e sem telefone responde 422 `SEM_TELEFONE`.
+- **Por quê:** sem registro no banco e sem biblioteca de agendamento, o código fica pequeno e testável. O limite faz o avaliador ver alguns exemplos ao subir o projeto sem encher o mock de centenas de mensagens.
+- **Custo:** a memória se perde ao reiniciar: o backend pode reenviar a mensagem 2 ou 3 da mesma consulta depois de um restart (até 3 por tipo). Em produção, o registro dos envios iria para o banco e o limite deixaria de existir.
+
+### D61. Serviço `whatsapp-mock`
+
+- **Decisão:** o envio é simulado por um serviço próprio, `whatsapp-mock/` (Node + Express, porta 8025, mensagens em memória), que sobe junto no `docker compose up`. `POST /messages` com `{ to, tipo, text }` guarda a mensagem e responde 201 com `{ id }`; `GET /` mostra as mensagens agrupadas por telefone, da mais recente para a mais antiga. Não há rota nem botão para responder. O backend envia para a URL da variável `WHATSAPP_URL`, e só a URL base muda numa integração real.
+- **Por quê:** o desafio não pede integração real, e uma página simples deixa conferir o que o sistema mandou.
+- **Custo:** as mensagens somem quando o mock reinicia, e ele não tem autenticação (serviço local de demonstração).
+
+### D62. Lista de espera e oferta de vaga
+
+- **Decisão:** a coleção `lista_espera` guarda nome, telefone (10 ou 11 dígitos), médico opcional, `antecipar` e a data de cadastro, sem tela de cadastro: só `POST /api/lista-espera` e `GET /api/lista-espera`. Se estiver vazia quando o backend sobe, grava 5 pessoas fictícias (2 com médico, 2 com `antecipar`). Nas linhas de risco muito alta e status `agendada`, a ação "Oferecer vaga" envia a mensagem 4 à pessoa mais antiga da espera do mesmo médico (ou sem médico definido). A oferta não muda o status da consulta nem tira a pessoa da fila; sem ninguém elegível responde 404 `SEM_LISTA_DE_ESPERA`. `antecipar` é só informativo.
+- **Por quê:** é a ideia do plano ("se der tempo") no tamanho mínimo: regra simples e explicável, sem depender da importação.
+- **Custo:** quem recebe a oferta continua na fila e pode receber a mesma vaga de novo; a clínica decide na mão. Não há aceite automático.
+
 ## Decisões pendentes (Parte 1 do desafio)
 
-5. O que o sistema faz com pacientes que faltam com frequência? (decidir depois)
+5. O que o sistema faz com pacientes que faltam com frequência? Resolvida na Parte 2: chip "faltoso" (D59), risco de falta (D57) e a aba Prevenção de Faltas com mensagens (D60).

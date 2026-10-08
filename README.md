@@ -37,6 +37,7 @@ docker compose exec backend npm run import
 
 **Detalhes da importação** podem ser verificados na tela de importações
 (http://localhost:5173/importacoes). Além disso, cada importação gera:
+
 - um resumo no terminal (no log do compose, ou na saída do `npm run import`);
 - dois arquivos em `data/relatorios/`: `importacao-AAAAMMDD-HHMMSS.json` (relatório) e
   `importacao-AAAAMMDD-HHMMSS-descartes.csv` (linhas não importadas, com o número da linha e o motivo).
@@ -55,7 +56,6 @@ usar numa carga futura.
 - **Conflito de horário:** se o médico, ou o paciente, já tem outra consulta (não cancelada) no mesmo
   horário, fica só a que foi marcada primeiro; as demais são descartadas com o motivo "horário
   ocupado". Consultas canceladas não contam como conflito.
-
 
 ## O que os dados mostraram
 
@@ -78,19 +78,72 @@ O enunciado deixa cinco perguntas em aberto. As respostas:
    conflitantes do mesmo `id` sem como desempatar são descartadas; horário já ocupado fica com a
    consulta marcada primeiro. É melhor perder poucas linhas do que levar ao sistema um dado incerto, e
    todo descarte fica no relatório com o motivo.
-5. **O que fazer com pacientes que faltam com frequência:** em aberto, será decidida depois.
+5. **O que fazer com pacientes que faltam com frequência: avisar mais, e avisar a recepção.** O sistema
+   marca como "faltoso" quem tem pelo menos 1 atendimento e 25% ou mais de faltas nos 5 últimos, e dá a
+   cada consulta futura uma pontuação de risco de falta, que aparece na aba Prevenção de Faltas. As
+   mensagens automáticas de confirmação e de lembrete e a lista de espera cuidam do restante. Nenhum
+   paciente é bloqueado nem punido: a recepção vê quem merece contato extra. Os pesos da pontuação
+   foram conferidos nos dados importados (6.248 consultas concluídas, taxa de falta de 31,7%): segunda
+   de manhã falta 46,9% contra 29,9% no resto; primeira consulta, 36,9% contra 30,0%; histórico de
+   2 ou mais faltas, ou mais de 30% de taxa, 34,1% contra 30,0%; convênio, 32,0% contra 31,0%.
 
 ## O que foi construído na Parte 2
 
-TODO
+Uma funcionalidade para reduzir as faltas, em quatro peças:
+
+- **Risco de falta por consulta.** Uma soma de pontos: histórico de faltas (40), primeira consulta (25),
+  convênio (15), segunda-feira de manhã (15) e consulta ainda sem confirmação a menos de 48 h (20).
+  De 25 a 49 pontos o risco é média, de 50 a 69 alta, de 70 em diante muito alta. Os pesos ficam em
+  `backend/src/risco/pesos.ts`, e o banner da aba mostra a conta.
+- **Aba Prevenção de Faltas.** Lista as consultas dos próximos 14 dias com risco média ou maior, com
+  filtro por nível, troca de status, envio de confirmação ou lembrete, cópia do telefone e, nas de
+  risco muito alta, "Oferecer vaga".
+- **Mensagens automáticas por WhatsApp simulado.** Ao criar a consulta, o paciente recebe os dados e o
+  link do Google Calendar; com 72 h ou menos recebe o pedido de confirmação e, com 36 h ou menos, o
+  lembrete. O envio é simulado pelo serviço `whatsapp-mock`, que mostra tudo em
+  http://localhost:8025.
+- **Chip "faltoso" e lista de espera.** O chip aparece nas tabelas de pacientes e de agendamentos. A
+  lista de espera permite oferecer a vaga de uma consulta de risco muito alta à primeira pessoa da fila.
+
+**Por quê.** Os dados mostram onde as faltas se concentram: segunda de manhã (46,9% de faltas) e
+primeira consulta (36,9%) estão bem acima da média de 31,7%. Uma pontuação por fatores é simples de
+explicar e de ajustar, e leva a recepção a agir em quem mais precisa em vez de avisar todos do mesmo
+jeito. O convênio quase não diferencia (32,0% contra 31,0%) e tem o menor peso; as justificativas e os
+custos estão em [docs/decisoes.md](docs/decisoes.md) (D56 a D62).
+
+**Para ver funcionando.** Depois de subir o projeto, importe os dados de novo, porque a importação passou
+a gravar o campo `consideradoFalta`, e abra http://localhost:8025 para ver as mensagens enviadas:
+
+```bash
+docker compose exec backend npm run import
+```
 
 ## Faltas evitadas por mês
 
-TODO
+A conta usa a taxa atual do banco, conferida em `GET /api/indicadores`: 1.978 faltas em 6.248 consultas
+concluídas (realizadas + faltas), ou 31,7%, entre 25/09/2025 e 24/09/2026. Isso dá cerca de 520
+consultas concluídas por mês (6.248 ÷ 12) e cerca de 165 faltas por mês.
+
+A redução que a funcionalidade traz **não é conhecida**: os cenários abaixo são hipóteses, não
+resultados, e não há fonte externa por trás deles.
+
+| Hipótese: redução da taxa | Taxa resultante | Faltas evitadas por mês (de ~520 consultas) |
+| ------------------------- | --------------- | ------------------------------------------- |
+| 2 pontos percentuais      | 29,7%           | cerca de 10                                 |
+| 4 pontos percentuais      | 27,7%           | cerca de 21                                 |
+| 6 pontos percentuais      | 25,7%           | cerca de 31                                 |
+
+A redução esperada é uma hipótese a ser medida (próxima seção).
 
 ## Como saber se funcionou em 3 meses
 
-TODO
+Na tela Indicadores, compare a taxa de falta dos 3 meses depois do uso da aba e das mensagens com a
+dos 3 meses anteriores (a tela já compara com o período anterior de mesmo tamanho). Como referência,
+vale 31,7%. Para não confundir com outras causas, olhe também:
+
+- a taxa de segunda de manhã e a de primeira consulta, que são os fatores mais fortes;
+- a taxa dos pacientes marcados como faltosos antes e depois;
+- quantas consultas de risco alta e muito alta foram confirmadas depois do envio da mensagem.
 
 ## O que ficou de fora e os riscos
 

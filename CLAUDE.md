@@ -7,7 +7,8 @@ Docs: `docsignorar/tecnologias.md`, `docs/decisoes.md`, `docsignorar/uso-de-ia.m
 
 ## Estrutura
 - `frontend/` React + TypeScript (Vite, Mantine, TanStack Query)
-- `backend/`  Node + Express + TypeScript (Mongoose, Zod); testes em `backend/tests/`
+- `backend/` Node + Express + TypeScript (Mongoose, Zod); testes em `backend/tests/`
+- `whatsapp-mock/` Node + Express, WhatsApp simulado (porta 8025); testes em `whatsapp-mock/tests/`
 - `data/` `agendamentos.csv` e `medicos.json` (montada em `/data` no container do backend)
 
 ## Visual
@@ -34,6 +35,6 @@ Docs: `docsignorar/tecnologias.md`, `docs/decisoes.md`, `docsignorar/uso-de-ia.m
 - Subir: `docker compose up --build`
 - Mudou dependência: `docker compose up --build --renew-anon-volumes`
 - Importar dados: `docker compose exec backend npm run import`
-- Testes: `docker compose exec backend npm test`
-- Lint/build: `docker compose exec backend npm run lint` (idem `frontend`, e `npm run build`)
+- Testes: `docker compose exec backend npm test` (mock: `docker compose exec whatsapp-mock npm test`)
+- Lint/build: `docker compose exec backend npm run lint` (idem `frontend`, `whatsapp-mock`; `npm run build`)
 - Formatar: `docker compose exec frontend npm run format` (idem `backend`)
