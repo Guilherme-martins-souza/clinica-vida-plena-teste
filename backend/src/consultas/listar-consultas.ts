@@ -1,6 +1,7 @@
 import type { QueryFilter } from 'mongoose';
 import { regexDeBusca } from '../busca';
 import { diaSeguinte, inicioDoDia, partesEmSaoPaulo } from '../fuso';
+import { ehFaltoso, historicoDe } from '../historico/historico';
 import { Consulta, type DadosConsulta, type StatusConsulta, type TipoAtendimento } from '../models/consulta';
 import { Medico } from '../models/medico';
 import { Paciente } from '../models/paciente';
@@ -24,11 +25,14 @@ export interface ConsultaResposta {
   codigo: string;
   paciente: { id: string; nome: string; telefone: string | null };
   primeiraConsulta: boolean;
+  // Paciente com 25% ou mais de faltas nos 5 últimos atendimentos (chip "faltoso").
+  faltoso: boolean;
   medico: { id: string; nome: string; especialidade: string };
   tipoAtendimento: TipoAtendimento;
   marcadaEm: Date | null;
   inicio: Date;
   status: StatusConsulta;
+  consideradoFalta: boolean;
 }
 
 const PENDENTES: StatusConsulta[] = ['agendada', 'confirmada'];
@@ -99,13 +103,14 @@ export async function listarConsultas(
     Consulta.countDocuments(filtro),
   ]);
 
-  // Pacientes, médicos e primeiras consultas só da página, em três buscas ($in).
+  // Pacientes, médicos, primeiras consultas e histórico só da página, em quatro buscas ($in).
   const pacienteIds = [...new Set(consultas.map((consulta) => consulta.pacienteId))];
   const medicoIds = [...new Set(consultas.map((consulta) => consulta.medicoId))];
-  const [pacientes, medicos, primeiras] = await Promise.all([
+  const [pacientes, medicos, primeiras, historicos] = await Promise.all([
     Paciente.find({ _id: { $in: pacienteIds } }).lean(),
     Medico.find({ _id: { $in: medicoIds } }).lean(),
     primeirasConsultas(pacienteIds),
+    historicoDe(pacienteIds, agora),
   ]);
   const pacientePorId = new Map(pacientes.map((paciente) => [paciente._id, paciente]));
   const medicoPorId = new Map(medicos.map((medico) => [medico._id, medico]));
@@ -120,11 +125,13 @@ export async function listarConsultas(
       codigo: consulta.codigoLegado ?? id.slice(-6),
       paciente: { id: consulta.pacienteId, nome: paciente?.nome ?? '', telefone: paciente?.telefone ?? null },
       primeiraConsulta: primeiras.has(id),
+      faltoso: ehFaltoso(historicos.get(consulta.pacienteId) ?? { faltas: 0, atendimentos: 0, ultimos5: [] }),
       medico: { id: consulta.medicoId, nome: medico?.nome ?? '', especialidade: medico?.especialidade ?? '' },
       tipoAtendimento: consulta.tipoAtendimento,
       marcadaEm: consulta.marcadaEm,
       inicio: consulta.inicio,
       status: consulta.status,
+      consideradoFalta: consulta.consideradoFalta,
     };
   });
 

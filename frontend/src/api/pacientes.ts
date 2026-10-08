@@ -11,6 +11,8 @@ export type PacienteResumo = ContagemFaltas & {
   telefone: string | null
   /** true quando o paciente não tem consulta não cancelada: a próxima que marcar é a 1ª na clínica. */
   primeiraConsulta: boolean
+  /** true quando tem 25% ou mais de faltas nos 5 últimos atendimentos. */
+  faltoso: boolean
 }
 
 export type FiltroPacientes = {
@@ -42,6 +44,7 @@ function toPaciente(item: unknown): PacienteResumo {
     concluidas: toNumber(item.concluidas),
     faltas: toNumber(item.faltas),
     primeiraConsulta: item.primeiraConsulta === true,
+    faltoso: item.faltoso === true,
   }
 }
 

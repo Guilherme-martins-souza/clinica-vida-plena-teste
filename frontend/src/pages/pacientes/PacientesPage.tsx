@@ -4,6 +4,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Search } from 'lucide-react'
 import { useState } from 'react'
 import { fetchPacientes } from '../../api/pacientes'
+import { FaltosoChip } from '../../components/FaltosoChip'
 import { PageHeader } from '../../components/PageHeader'
 import { Paginacao } from '../../components/Paginacao'
 import { formatInteger, formatPercent, formatTelefone, rate } from '../../lib/format'
@@ -85,7 +86,10 @@ export function PacientesPage() {
               {pacientes.map((p) => (
                 <Table.Tr key={p.id}>
                   <Table.Td className={tableClasses.id}>{p.id}</Table.Td>
-                  <Table.Td>{p.nome}</Table.Td>
+                  <Table.Td>
+                    {p.nome}
+                    {p.faltoso && <FaltosoChip />}
+                  </Table.Td>
                   <Table.Td>{p.telefone ? formatTelefone(p.telefone) : '—'}</Table.Td>
                   <Table.Td className={classes.numero}>{formatInteger(p.concluidas)}</Table.Td>
                   <Table.Td className={classes.numero}>{formatInteger(p.faltas)}</Table.Td>

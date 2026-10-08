@@ -77,6 +77,7 @@ beforeEach(async () => {
       marcadaEm: MARCADA_EM,
       canceladaEm: null,
       status,
+      consideradoFalta: status === 'falta',
     });
     ids[nome as Nome] = String(consulta._id);
   }
@@ -136,11 +137,13 @@ describe('GET /api/consultas — itens (AC 1)', () => {
       codigo: 'AG00001',
       paciente: { id: 'PAC0002', nome: 'Maria Conceição', telefone: null },
       primeiraConsulta: true,
+      faltoso: true,
       medico: { id: 'MED01', nome: 'Dr. Paulo Mendes', especialidade: 'Cardiologia' },
       tipoAtendimento: 'convenio',
       marcadaEm: MARCADA_EM.toISOString(),
       inicio: INICIOS.passado3.toISOString(),
       status: 'falta',
+      consideradoFalta: true,
     });
     // Sem código legado: os 6 últimos caracteres do id.
     expect(porNome.get('futuro2')).toEqual({
@@ -148,11 +151,13 @@ describe('GET /api/consultas — itens (AC 1)', () => {
       codigo: ids.futuro2.slice(-6),
       paciente: { id: 'PAC0001', nome: 'João Pedro', telefone: '53948954499' },
       primeiraConsulta: false,
+      faltoso: false,
       medico: { id: 'MED02', nome: 'Dra. Ana Ribeiro', especialidade: 'Dermatologia' },
       tipoAtendimento: 'convenio',
       marcadaEm: MARCADA_EM.toISOString(),
       inicio: INICIOS.futuro2.toISOString(),
       status: 'confirmada',
+      consideradoFalta: false,
     });
   });
 
@@ -162,6 +167,21 @@ describe('GET /api/consultas — itens (AC 1)', () => {
 
     // PAC0001: passado0 é cancelada, então a primeira é passado1. PAC0002: passado3. PAC0003: passado2.
     expect(primeiras.sort()).toEqual(['passado1', 'passado2', 'passado3']);
+  });
+});
+
+describe('GET /api/consultas — faltoso (FALT-01)', () => {
+  it('paciente com falta nos atendimentos vem com faltoso true; quem não tem falta, false', async () => {
+    const res = await listar('aba=todas');
+    const faltoso = Object.fromEntries(
+      res.body.itens.map((item: { id: string; faltoso: boolean }) => [item.id, item.faltoso]),
+    );
+
+    // Maria (PAC0002) tem 1 atendimento e é uma falta (100%); João e Ana não têm falta.
+    expect(faltoso[ids.passado3]).toBe(true);
+    expect(faltoso[ids.futuro1]).toBe(true);
+    expect(faltoso[ids.futuro2]).toBe(false);
+    expect(faltoso[ids.passado2]).toBe(false);
   });
 });
 

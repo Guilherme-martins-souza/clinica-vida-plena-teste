@@ -66,7 +66,15 @@ describe('GET /api/pacientes (PAC-01)', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       itens: [
-        { id: 'PAC0002', nome: 'Ana Conceição', telefone: null, concluidas: 0, faltas: 0, primeiraConsulta: true },
+        {
+          id: 'PAC0002',
+          nome: 'Ana Conceição',
+          telefone: null,
+          concluidas: 0,
+          faltas: 0,
+          primeiraConsulta: true,
+          faltoso: false,
+        },
         {
           id: 'PAC0001',
           nome: 'João Pereira',
@@ -74,6 +82,7 @@ describe('GET /api/pacientes (PAC-01)', () => {
           concluidas: 3,
           faltas: 2,
           primeiraConsulta: false,
+          faltoso: true,
         },
         {
           id: 'PAC0003',
@@ -82,6 +91,7 @@ describe('GET /api/pacientes (PAC-01)', () => {
           concluidas: 0,
           faltas: 0,
           primeiraConsulta: true,
+          faltoso: false,
         },
       ],
       total: 3,
@@ -97,6 +107,24 @@ describe('GET /api/pacientes (PAC-01)', () => {
     const res = await request(app).get('/api/pacientes?busca=Ana');
 
     expect(res.body.itens[0]).toMatchObject({ id: 'PAC0002', concluidas: 1, faltas: 1 });
+  });
+
+  it('faltoso é true com 25% ou mais de faltas nos 5 últimos atendimentos, false sem atendimento ou abaixo disso (FALT-01)', async () => {
+    // Ana: 1 falta em 5 atendimentos (20%) → não é faltoso. Com mais uma falta, os 5 últimos têm 2 faltas (40%) → é.
+    await consulta('PAC0002', '2026-02-02T08:00', 'falta');
+    for (const dia of ['01', '03', '04', '05']) {
+      await consulta('PAC0002', `2026-02-${dia}T08:00`, 'realizada');
+    }
+    const antes = await request(app).get('/api/pacientes?busca=Ana');
+    expect(antes.body.itens[0]).toMatchObject({ concluidas: 5, faltas: 1, faltoso: false });
+
+    await consulta('PAC0002', '2026-02-06T08:00', 'falta');
+    const depois = await request(app).get('/api/pacientes?busca=Ana');
+    expect(depois.body.itens[0]).toMatchObject({ concluidas: 6, faltas: 2, faltoso: true });
+
+    // Maria só teve cancelamento da clínica: sem atendimento, não é faltoso.
+    const maria = await request(app).get('/api/pacientes?busca=Maria');
+    expect(maria.body.itens[0]).toMatchObject({ concluidas: 0, faltoso: false });
   });
 
   it('primeiraConsulta é true só para quem não tem consulta não cancelada (só canceladas contam como nenhuma)', async () => {

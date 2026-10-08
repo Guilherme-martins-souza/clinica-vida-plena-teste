@@ -7,6 +7,7 @@ import { alterarStatus, fetchConsultas, fetchContagens, type Aba, type ConsultaL
 import { fetchMedicos } from '../../api/medicos'
 import type { AgendamentoStatus, TipoAtendimento } from '../../api/types'
 import { avisarErro, avisarSucesso } from '../../components/avisos'
+import { FaltosoChip } from '../../components/FaltosoChip'
 import { Paginacao } from '../../components/Paginacao'
 import { StatusBadge } from '../../components/StatusBadge'
 import tableClasses from '../../components/DataTable.module.css'
@@ -213,6 +214,7 @@ export function AgendamentosTable() {
                     <Table.Td>
                       {c.paciente.nome}
                       {c.primeiraConsulta && <span className={classes.etiqueta}>1ª consulta</span>}
+                      {c.faltoso && <FaltosoChip />}
                       <small>{c.paciente.telefone ? formatTelefone(c.paciente.telefone) : '—'}</small>
                     </Table.Td>
                     <Table.Td>{TIPO_LABEL[c.tipoAtendimento]}</Table.Td>

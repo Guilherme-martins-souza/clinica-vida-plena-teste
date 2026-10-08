@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { regexDeBusca } from '../busca';
 import { HttpError } from '../errors';
-import { resultado } from '../indicadores/calcular';
+import { ehFaltoso, historicoDe } from '../historico/historico';
 import { Consulta } from '../models/consulta';
 import { Paciente } from '../models/paciente';
 import { inicioDaPagina, lerPaginacao, type Pagina } from '../paginacao';
@@ -17,6 +17,8 @@ interface PacienteResposta {
   faltas: number;
   // true quando o paciente não tem nenhuma consulta não cancelada: a próxima que ele marcar é a 1ª na clínica.
   primeiraConsulta: boolean;
+  // true quando tem 25% ou mais de faltas nos 5 últimos atendimentos (chip "faltoso").
+  faltoso: boolean;
 }
 
 const filtroSchema = z.object({ busca: z.string().trim().optional() });
@@ -37,13 +39,11 @@ pacientesRouter.get('/', async (req, res) => {
     Paciente.countDocuments(filtro),
   ]);
 
-  // Consultas que podem contar como concluída, só dos pacientes da página.
-  const consultas = await Consulta.find({
-    pacienteId: { $in: pacientes.map((paciente) => paciente._id) },
-    status: { $in: ['realizada', 'falta', 'cancelada_paciente'] },
-  })
-    .select('pacienteId status consideradoFalta')
-    .lean();
+  // Concluídas, faltas e faltoso de todo o histórico, em uma busca só para a página.
+  const historicos = await historicoDe(
+    pacientes.map((paciente) => paciente._id),
+    new Date(),
+  );
 
   // Pacientes da página que já têm alguma consulta não cancelada (para a etiqueta "1ª consulta" do agendamento).
   const comConsulta = await Consulta.distinct('pacienteId', {
@@ -52,25 +52,15 @@ pacientesRouter.get('/', async (req, res) => {
   });
   const jaVieram = new Set(comConsulta.map(String));
 
-  const contagens = new Map(pacientes.map((paciente) => [paciente._id, { concluidas: 0, faltas: 0 }]));
-  for (const consulta of consultas) {
-    const r = resultado(consulta);
-    const contagem = contagens.get(consulta.pacienteId);
-    if (contagem && (r === 'realizada' || r === 'falta')) {
-      contagem.concluidas += 1;
-      if (r === 'falta') {
-        contagem.faltas += 1;
-      }
-    }
-  }
-
   const pagina: Pagina<PacienteResposta> = {
     itens: pacientes.map((paciente) => ({
       id: paciente._id,
       nome: paciente.nome,
       telefone: paciente.telefone,
-      ...(contagens.get(paciente._id) ?? { concluidas: 0, faltas: 0 }),
+      concluidas: historicos.get(paciente._id)?.atendimentos ?? 0,
+      faltas: historicos.get(paciente._id)?.faltas ?? 0,
       primeiraConsulta: !jaVieram.has(paciente._id),
+      faltoso: ehFaltoso(historicos.get(paciente._id) ?? { faltas: 0, atendimentos: 0, ultimos5: [] }),
     })),
     total,
     ...paginacao,

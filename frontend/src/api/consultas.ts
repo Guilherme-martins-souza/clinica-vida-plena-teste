@@ -15,11 +15,15 @@ export type ConsultaLinha = {
   codigo: string
   paciente: { id: string; nome: string; telefone: string | null }
   primeiraConsulta: boolean
+  /** Paciente com 25% ou mais de faltas nos 5 últimos atendimentos. */
+  faltoso: boolean
   medico: Medico
   tipoAtendimento: TipoAtendimento
   marcadaEm: Date | null
   inicio: Date
   status: AgendamentoStatus
+  /** Conta como falta: status `falta` ou cancelamento do paciente a menos de 24 h. */
+  consideradoFalta: boolean
 }
 
 /** Consulta como o POST e o PATCH devolvem (sem nomes de paciente e médico). */
@@ -33,6 +37,7 @@ export type Consulta = {
   marcadaEm: Date | null
   canceladaEm: Date | null
   status: AgendamentoStatus
+  consideradoFalta: boolean
 }
 
 export type FiltroConsultas = {
@@ -121,11 +126,13 @@ function toLinha(item: unknown): ConsultaLinha {
     codigo: toText(c.codigo),
     paciente: { id: toText(paciente.id), nome: toText(paciente.nome), telefone: toTextOuNull(paciente.telefone) },
     primeiraConsulta: c.primeiraConsulta === true,
+    faltoso: c.faltoso === true,
     medico: { id: toText(medico.id), nome: toText(medico.nome), especialidade: toText(medico.especialidade) },
     tipoAtendimento: toTipo(c.tipoAtendimento),
     marcadaEm: toDateOuNull(c.marcadaEm),
     inicio: toDate(c.inicio),
     status: toStatus(c.status),
+    consideradoFalta: c.consideradoFalta === true,
   }
 }
 
@@ -141,6 +148,7 @@ function toConsulta(corpo: unknown): Consulta {
     marcadaEm: toDateOuNull(c.marcadaEm),
     canceladaEm: toDateOuNull(c.canceladaEm),
     status: toStatus(c.status),
+    consideradoFalta: c.consideradoFalta === true,
   }
 }
 
