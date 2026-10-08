@@ -36,34 +36,37 @@ docker compose exec backend npm run import
 ```
 
 **Detalhes da importação** podem ser verificados na tela de importações
-(http://localhost:5173/importacoes), com as linhas descartadas, o motivo e o download do CSV. Além disso, cada importação gera:
-
+(http://localhost:5173/importacoes). Além disso, cada importação gera:
 - um resumo no terminal (no log do compose, ou na saída do `npm run import`);
 - dois arquivos em `data/relatorios/`: `importacao-AAAAMMDD-HHMMSS.json` (relatório) e
   `importacao-AAAAMMDD-HHMMSS-descartes.csv` (linhas não importadas, com o número da linha e o motivo).
   Os arquivos são gravados também quando a importação falha.
 
-**Decisões importação.** A regra principal"na dúvida, não importa": uma linha só entra quando todos os
-dados dela são confiáveis ou foram corrigidos por uma regra sem ambiguidade.
-- Status com outra grafia (`atendido`, `faltou`, `desmarcou`...) é padronizado; `cancelado` sem
-  dizer quem cancelou vira cancelamento da clínica.
-- Linhas idênticas viram uma só. Mesmo `id` com status diferente: todas são descartadas. Mesmo `id`
-  com horário diferente: fica a versão cujo horário está livre; sem como desempatar, todas saem.
-- "Passado" e "futuro" são julgados pela data da exportação (o maior `data_agendamento` do arquivo),
-  não pelo relógio: o mesmo arquivo gera sempre o mesmo resultado. Consulta passada sem resultado e
-  consulta futura já com resultado são descartadas.
-- Consultas fora da grade do médico são descartadas. Se o médico (ou o paciente) já tem consulta não
-  cancelada no mesmo horário, fica a marcada primeiro e as outras são descartadas como "horário
-  ocupado", a mesma regra da criação de consultas.
-- Datas nos formatos `AAAA-MM-DD HH:mm` e `DD/MM/AAAA HH:mm`, sempre no fuso de São Paulo (−03:00).
+**Decisões da importação.** Regra principal: na dúvida, não importa. Só entra o que temos certeza de
+que está correto; o que fica de fora vai para uma listagem de descartes, para a clínica corrigir e
+usar numa carga futura.
 
+- **Status:** grafias diferentes (`atendido`, `faltou`, `desmarcou`...) são padronizadas. Cancelamento
+  sem informar quem cancelou vira cancelamento da clínica.
+- **Duplicados:** linhas idênticas viram uma. Mesmo `id` com status diferente: todas saem. Mesmo `id`
+  com horário diferente: fica a versão cujo horário está livre; sem desempate, todas saem.
+- **Passado e futuro** são julgados pelo maior `data_agendamento` do arquivo, não pelo relógio, para o
+  mesmo arquivo dar sempre o mesmo resultado. Consulta passada sem resultado ou futura com resultado sai.
+- **Conflito de horário:** se o médico, ou o paciente, já tem outra consulta (não cancelada) no mesmo
+  horário, fica só a que foi marcada primeiro; as demais são descartadas com o motivo "horário
+  ocupado". Consultas canceladas não contam como conflito.
+
+
+## O que os dados mostraram
+
+TODO
 
 ## Decisões da Parte 1
 
 O enunciado deixa cinco perguntas em aberto. As respostas:
 
 1. **Cancelamento do paciente com menos de 24 h conta como falta.** O horário cancelado em cima da
-   hora dificilmente é reaproveitado, e o efeito para a clínica é o mesmo da falta. Cancelamento da
+   hora dificilmente é reaproveitado, e o efeito para a clínica é o mesmo da falta. Marcando como falta, também sabemos quem cobrar mesmo não tendo comparecido. Cancelamento da
    clínica nunca conta.
 2. **Taxa de falta = faltas ÷ (realizadas + faltas).** Cancelamentos com antecedência ficam fora: o
    horário foi liberado e pode ser reaproveitado. No exemplo do enunciado (10 consultas, 2 faltas, 2
@@ -76,6 +79,26 @@ O enunciado deixa cinco perguntas em aberto. As respostas:
    consulta marcada primeiro. É melhor perder poucas linhas do que levar ao sistema um dado incerto, e
    todo descarte fica no relatório com o motivo.
 5. **O que fazer com pacientes que faltam com frequência:** em aberto, será decidida depois.
+
+## O que foi construído na Parte 2
+
+TODO
+
+## Faltas evitadas por mês
+
+TODO
+
+## Como saber se funcionou em 3 meses
+
+TODO
+
+## O que ficou de fora e os riscos
+
+TODO
+
+## Como usei IA e onde corrigi o que ela gerou
+
+TODO
 
 ## Telas
 
@@ -98,34 +121,6 @@ Com o projeto rodando:
 docker compose exec backend npm test
 ```
 
-Os testes de banco usam o MongoDB do compose, em bancos próprios (`clinica_test*`), separados do
-banco `clinica` da aplicação, e apagam esses bancos ao terminar. O teste da importação roda também
-sobre os arquivos reais de `data/`.
-
 ## API
 
-Todas as rotas ficam em `http://localhost:3000/api`.
-
-| Rota                                            | O que faz                                                                 |
-| ----------------------------------------------- | ------------------------------------------------------------------------- |
-| `GET /api/health`                               | Saúde da API e do banco.                                                  |
-| `GET /api/importacoes`                          | Lista das importações (paginada).                                         |
-| `GET /api/importacoes/:id`                      | Detalhe de uma importação.                                                |
-| `GET /api/importacoes/:id/descartes`            | Linhas descartadas (paginada, `?motivo=`).                                |
-| `GET /api/importacoes/:id/descartes.csv`        | Download das linhas descartadas em CSV.                                   |
-| `POST /api/consultas`                           | Cria uma consulta (`medicoId`, `pacienteId`, `inicio` com fuso).          |
-| `PATCH /api/consultas/:id/status`               | Troca o status de uma consulta (`{ status }`).                            |
-| `GET /api/consultas`                            | Lista de consultas (paginada). Filtros abaixo.                            |
-| `GET /api/consultas/contagens`                  | Quantidade de consultas em cada aba.                                      |
-| `GET /api/medicos`                              | Médicos com a grade de atendimento.                                       |
-| `GET /api/medicos/:id/horarios?data=AAAA-MM-DD` | Horários do dia (`livre`, `ocupado`, `passado`) e o próximo dia com vaga. |
-| `GET /api/pacientes?busca=`                     | Pacientes (paginada), com concluídas, faltas e 1ª consulta.               |
-| `GET /api/indicadores?de=&ate=`                 | Indicadores do período (datas `AAAA-MM-DD`).                              |
-
-Filtros de `GET /api/consultas`: `aba=hoje|proximas|aguardando|todas` (sem `aba`, todas), `busca`
-(nome do paciente, sem diferenciar acentos e maiúsculas), `status`, `medicoId`, `de` e `ate`.
-
-- **Listas:** `?pagina=1&porPagina=10` (10 por padrão, no máximo 100); a resposta é
-  `{ itens, total, pagina, porPagina }`.
-- **Erros:** sempre `{ error: { code, message } }`, com o status HTTP certo (400 dados inválidos, 404
-  não encontrado, 409 horário ocupado ou status alterado por outra pessoa, 422 regra da agenda).
+Rotas, filtros, paginação e formato de erros: [docs/api.md](docs/api.md).

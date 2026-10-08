@@ -11,9 +11,8 @@ teste-tecnico DEV jr ACS/
 vida-plena-design-system/
 
 # Fora do repositório por enquanto
-docs/
+docsignorar/
 .claude/
-
 .specs
 
 # Relatórios gerados pela importação

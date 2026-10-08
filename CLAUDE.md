@@ -3,7 +3,7 @@
 Desafio técnico: sistema de agendamento de consultas para uma clínica (6 médicos) e uma
 funcionalidade, baseada nos dados históricos, que ajude a reduzir as faltas (~28%).
 Enunciado e dados originais: `teste-tecnico DEV jr ACS/teste-tecnico/` (fora do git).
-Docs: `docs/tecnologias.md`, `docs/decisoes.md`, `docs/uso-de-ia.md`.
+Docs: `docsignorar/tecnologias.md`, `docs/decisoes.md`, `docsignorar/uso-de-ia.md`.
 
 ## Estrutura
 - `frontend/` React + TypeScript (Vite, Mantine, TanStack Query)
@@ -22,7 +22,7 @@ Docs: `docs/tecnologias.md`, `docs/decisoes.md`, `docs/uso-de-ia.md`.
   ao subir: é o comando `docker compose exec backend npm run import`. Nada além disso exige passo manual.
 - Não adicionar bibliotecas ou ferramentas sem perguntar antes.
 - Commit só quando o usuário pedir, seguindo a skill `commit` (`.claude/skills/commit/`).
-- Ao fim de cada etapa: registrar decisões em `docs/decisoes.md` e o uso/correções da IA em `docs/uso-de-ia.md`.
+- Ao fim de cada etapa: registrar decisões em `docs/decisoes.md` e o uso/correções da IA em `docsignorar/uso-de-ia.md`.
 - Código simples e explicável, sem mágica: o usuário vem de Laravel e Vue.
 - Sempre formatar (indentar) todo arquivo criado ou alterado, inclusive HTML e CSS, com o Prettier
   (`.prettierrc.json` de cada pasta; o backend usa ponto e vírgula, o frontend não).
