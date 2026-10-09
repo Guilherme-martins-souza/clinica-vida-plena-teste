@@ -47,13 +47,13 @@ export function BannerLegenda() {
             {regras.data && (
               <>
                 <li>
-                  <RiscoChip nivel="media" /> a partir de {regras.data.cortes.media} pontos.
+                  Risco de faltar <RiscoChip nivel="media" /> a partir de {regras.data.cortes.media} pontos.
                 </li>
                 <li>
-                  <RiscoChip nivel="alta" /> a partir de {regras.data.cortes.alta} pontos.
+                  Risco de faltar <RiscoChip nivel="alta" /> a partir de {regras.data.cortes.alta} pontos.
                 </li>
                 <li>
-                  <RiscoChip nivel="muito_alta" /> a partir de {regras.data.cortes.muitoAlta} pontos.
+                  Risco de faltar <RiscoChip nivel="muito_alta" /> a partir de {regras.data.cortes.muitoAlta} pontos.
                 </li>
               </>
             )}

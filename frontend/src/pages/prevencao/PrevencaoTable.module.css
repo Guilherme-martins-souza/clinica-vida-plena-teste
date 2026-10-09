@@ -6,3 +6,8 @@
 .status > :first-child {
   flex-shrink: 0;
 }
+
+.acoes {
+  text-align: right;
+  width: 1%;
+}

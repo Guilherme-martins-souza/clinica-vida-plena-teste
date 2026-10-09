@@ -1,4 +1,16 @@
-import { Alert, Button, Drawer, Group, Input, Loader, SegmentedControl, Select, SimpleGrid, Text } from '@mantine/core'
+import {
+  Alert,
+  Button,
+  Drawer,
+  Group,
+  Input,
+  Loader,
+  SegmentedControl,
+  Select,
+  SimpleGrid,
+  Text,
+  Tooltip,
+} from '@mantine/core'
 import { DatePickerInput } from '@mantine/dates'
 import { useDebouncedValue } from '@mantine/hooks'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -136,6 +148,12 @@ function FormNovoAgendamento({ onFechar }: { onFechar: () => void }) {
   }
 
   const completo = paciente !== null && medicoId !== null && data !== null && horario !== null
+  const faltando = [
+    paciente === null && 'paciente',
+    medicoId === null && 'médico',
+    data === null && 'data',
+    horario === null && 'horário',
+  ].filter((campo) => campo !== false)
   const livres = horarios.data?.slots.filter((s) => s.situacao === 'livre').length ?? 0
 
   return (
@@ -264,15 +282,19 @@ function FormNovoAgendamento({ onFechar }: { onFechar: () => void }) {
 
       <Group justify="flex-end" gap="xs" className={classes.rodape}>
         <Button onClick={onFechar}>Cancelar</Button>
-        <Button
-          variant="filled"
-          type="submit"
-          form="form-novo-agendamento"
-          disabled={!completo}
-          loading={criar.isPending}
-        >
-          Agendar consulta
-        </Button>
+        <Tooltip label={`Falta escolher: ${faltando.join(', ')}.`} disabled={completo} withArrow>
+          <span>
+            <Button
+              variant="filled"
+              type="submit"
+              form="form-novo-agendamento"
+              disabled={!completo}
+              loading={criar.isPending}
+            >
+              Agendar consulta
+            </Button>
+          </span>
+        </Tooltip>
       </Group>
     </>
   )

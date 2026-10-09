@@ -1,6 +1,6 @@
-import { Button, Group, Table, Text } from '@mantine/core'
+import { Button, Group, Menu, Table, Text, Tooltip } from '@mantine/core'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { CalendarPlus, Copy, MessageCircle } from 'lucide-react'
+import { CalendarPlus, ChevronDown, Copy, MessageCircle } from 'lucide-react'
 import { alterarStatus } from '../../api/consultas'
 import { ApiError } from '../../api/http'
 import { enviarMensagem, oferecerVaga, type ConsultaPrevencao, type TipoMensagem } from '../../api/prevencao'
@@ -75,9 +75,22 @@ export function PrevencaoTable({ itens, vazia }: PrevencaoTableProps) {
     }
   }
 
-  /** O botão de um tipo está carregando só na linha e no tipo que estão sendo enviados. */
-  function enviando(consulta: ConsultaPrevencao, tipo: TipoMensagem): boolean {
-    return envio.isPending && envio.variables.consulta.id === consulta.id && envio.variables.tipo === tipo
+  /** Por que "Enviar confirmação" está bloqueado (null quando pode enviar). */
+  function motivoSemConfirmacao(consulta: ConsultaPrevencao): string | null {
+    if (consulta.status === 'confirmada') return 'A consulta já está confirmada.'
+    return motivoSemTelefone(consulta)
+  }
+
+  /** Por que as ações de contato estão bloqueadas (null quando há telefone). */
+  function motivoSemTelefone(consulta: ConsultaPrevencao): string | null {
+    return consulta.paciente.telefone === null ? 'O paciente não tem telefone cadastrado.' : null
+  }
+
+  /** O botão "Ações" fica carregando só na linha que está enviando mensagem ou oferecendo vaga. */
+  function ocupada(consulta: ConsultaPrevencao): boolean {
+    const enviandoMensagem = envio.isPending && envio.variables.consulta.id === consulta.id
+    const oferecendoVaga = vaga.isPending && vaga.variables.id === consulta.id
+    return enviandoMensagem || oferecendoVaga
   }
 
   return (
@@ -101,7 +114,6 @@ export function PrevencaoTable({ itens, vazia }: PrevencaoTableProps) {
         </Table.Thead>
         <Table.Tbody>
           {itens.map((c) => {
-            const semTelefone = c.paciente.telefone === null
             return (
               <Table.Tr key={c.id}>
                 <Table.Td>
@@ -132,45 +144,61 @@ export function PrevencaoTable({ itens, vazia }: PrevencaoTableProps) {
                   <RiscoChip nivel={c.risco.nivel} />
                   <small>{c.risco.pontos} pontos</small>
                 </Table.Td>
-                <Table.Td>
-                  <Group gap="xs" wrap="nowrap">
-                    <Button
-                      size="xs"
-                      leftSection={<MessageCircle size={16} strokeWidth={1.75} />}
-                      disabled={c.status === 'confirmada' || semTelefone}
-                      loading={enviando(c, 'confirmacao')}
-                      onClick={() => envio.mutate({ consulta: c, tipo: 'confirmacao' })}
-                    >
-                      Enviar confirmação
-                    </Button>
-                    <Button
-                      size="xs"
-                      leftSection={<MessageCircle size={16} strokeWidth={1.75} />}
-                      disabled={semTelefone}
-                      loading={enviando(c, 'lembrete')}
-                      onClick={() => envio.mutate({ consulta: c, tipo: 'lembrete' })}
-                    >
-                      Enviar lembrete
-                    </Button>
-                    <Button
-                      size="xs"
-                      leftSection={<Copy size={16} strokeWidth={1.75} />}
-                      disabled={semTelefone}
-                      onClick={() => copiarContato(c)}
-                    >
-                      Copiar contato
-                    </Button>
-                    {c.risco.nivel === 'muito_alta' && c.status === 'agendada' && (
+                <Table.Td className={classes.acoes}>
+                  <Menu position="bottom-end" width="14rem" shadow="md" withinPortal>
+                    <Menu.Target>
                       <Button
                         size="xs"
-                        leftSection={<CalendarPlus size={16} strokeWidth={1.75} />}
-                        loading={vaga.isPending && vaga.variables.id === c.id}
-                        onClick={() => vaga.mutate(c)}
+                        rightSection={<ChevronDown size={16} strokeWidth={1.75} />}
+                        loading={ocupada(c)}
                       >
-                        Oferecer vaga
+                        Ações
                       </Button>
-                    )}
-                  </Group>
+                    </Menu.Target>
+                    <Menu.Dropdown aria-label="Ações da consulta">
+                      <Tooltip label={motivoSemConfirmacao(c)} disabled={motivoSemConfirmacao(c) === null} withArrow>
+                        <div>
+                          <Menu.Item
+                            leftSection={<MessageCircle size={16} strokeWidth={1.75} />}
+                            disabled={motivoSemConfirmacao(c) !== null}
+                            onClick={() => envio.mutate({ consulta: c, tipo: 'confirmacao' })}
+                          >
+                            Enviar confirmação
+                          </Menu.Item>
+                        </div>
+                      </Tooltip>
+                      <Tooltip label={motivoSemTelefone(c)} disabled={motivoSemTelefone(c) === null} withArrow>
+                        <div>
+                          <Menu.Item
+                            leftSection={<MessageCircle size={16} strokeWidth={1.75} />}
+                            disabled={motivoSemTelefone(c) !== null}
+                            onClick={() => envio.mutate({ consulta: c, tipo: 'lembrete' })}
+                          >
+                            Enviar lembrete
+                          </Menu.Item>
+                        </div>
+                      </Tooltip>
+                      <Tooltip label={motivoSemTelefone(c)} disabled={motivoSemTelefone(c) === null} withArrow>
+                        <div>
+                          <Menu.Item
+                            leftSection={<Copy size={16} strokeWidth={1.75} />}
+                            disabled={motivoSemTelefone(c) !== null}
+                            onClick={() => copiarContato(c)}
+                          >
+                            Copiar contato
+                          </Menu.Item>
+                        </div>
+                      </Tooltip>
+                      {c.risco.nivel === 'muito_alta' && c.status === 'agendada' && (
+                        <Menu.Item
+                          leftSection={<CalendarPlus size={16} strokeWidth={1.75} />}
+                          onClick={() => vaga.mutate(c)}
+                        >
+                          Oferecer vaga
+                        </Menu.Item>
+                      )}
+                    </Menu.Dropdown>
+                  </Menu>
                 </Table.Td>
               </Table.Tr>
             )

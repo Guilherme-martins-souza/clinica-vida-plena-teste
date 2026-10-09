@@ -2,6 +2,7 @@
   text-transform: none;
   font-weight: 600;
   letter-spacing: normal;
+  min-width: 7rem;
 }
 
 .dot {
