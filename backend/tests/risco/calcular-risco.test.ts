@@ -57,7 +57,9 @@ describe('calcularRisco: fatores (RISCO-01)', () => {
 
   it('AC 4: segunda 11:30 soma e segunda 12:00 não', () => {
     // 12/10/2026 é segunda-feira.
-    expect(codigos({ ...base, inicio: new Date('2026-10-12T11:30:00-03:00') })).toEqual(['segundaDeManha']);
+    const segundaDeManha = calcularRisco({ ...base, inicio: new Date('2026-10-12T11:30:00-03:00') });
+    expect(segundaDeManha.fatores.map((fator) => fator.codigo)).toEqual(['segundaDeManha']);
+    expect(segundaDeManha.pontos).toBe(15);
     expect(codigos({ ...base, inicio: new Date('2026-10-12T12:00:00-03:00') })).toEqual([]);
   });
 

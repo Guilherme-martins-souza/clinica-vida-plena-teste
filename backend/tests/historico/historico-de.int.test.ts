@@ -73,6 +73,20 @@ describe('historicoDe (FALT-01)', () => {
     expect(historico).toEqual({ faltas: 0, atendimentos: 0, ultimos5: [] });
   });
 
+  it('fronteira: início exatamente igual a agora não entra; um instante depois entra', async () => {
+    await consulta('PAC1', '2026-09-01', 'falta');
+    const inicio = new Date('2026-09-01T09:00:00-03:00');
+
+    expect((await historicoDe(['PAC1'], inicio)).get('PAC1')).toEqual({ faltas: 0, atendimentos: 0, ultimos5: [] });
+
+    const umMsDepois = new Date(inicio.getTime() + 1);
+    expect((await historicoDe(['PAC1'], umMsDepois)).get('PAC1')).toEqual({
+      faltas: 1,
+      atendimentos: 1,
+      ultimos5: [true],
+    });
+  });
+
   it('cancelamento tardio (consideradoFalta) conta como falta', async () => {
     await consulta('PAC1', '2026-09-04', 'cancelada_paciente', 2);
 

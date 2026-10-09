@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { criarEstado, rodarAgendador, type EstadoAgendador } from '../../src/mensagens/agendador';
 import { configurarEnviador } from '../../src/mensagens/enviar';
 import { Consulta, type StatusConsulta } from '../../src/models/consulta';
@@ -11,6 +11,7 @@ const HORA = 3_600_000;
 const UM_MINUTO_ANTES = new Date(AGORA.getTime() - 60_000);
 const enviador = vi.fn();
 let estado: EstadoAgendador;
+let erroNoLog: MockInstance;
 
 // Cria uma consulta que começa `horas` depois de AGORA.
 async function consulta(horas: number, status: StatusConsulta = 'agendada', pacienteId = 'PAC0001') {
@@ -31,7 +32,8 @@ beforeEach(async () => {
   enviador.mockReset().mockResolvedValue(undefined);
   configurarEnviador(enviador);
   estado = criarEstado();
-  vi.spyOn(console, 'error').mockImplementation(() => {});
+  erroNoLog = vi.spyOn(console, 'error').mockImplementation(() => {});
+  erroNoLog.mockClear();
   await Medico.create({ _id: 'MED01', nome: 'Dr. Paulo Mendes', especialidade: 'Cardiologia', grade: [] });
   await Paciente.create([
     { _id: 'PAC0001', nome: 'Maria Silva', telefone: '53948954499' },
@@ -122,6 +124,18 @@ describe('rodarAgendador', () => {
     expect(enviador).toHaveBeenCalledTimes(2);
   });
 
+  it('AC 9: falha do enviador é registrada no log', async () => {
+    await consulta(24, 'confirmada');
+    enviador.mockRejectedValueOnce(new Error('fora do ar'));
+
+    await rodarAgendador(AGORA, estado);
+
+    expect(erroNoLog).toHaveBeenCalledWith(
+      expect.stringContaining('Agendador: falha ao enviar confirmacao'),
+      expect.anything(),
+    );
+  });
+
   it('paciente sem telefone é pulado e as demais consultas seguem', async () => {
     await consulta(10, 'confirmada', 'PAC0002');
     await consulta(11, 'confirmada', 'PAC0003');
@@ -130,5 +144,6 @@ describe('rodarAgendador', () => {
 
     expect(enviador).toHaveBeenCalledTimes(1);
     expect(enviador.mock.calls[0][0].to).toBe('11987654321');
+    expect(erroNoLog).not.toHaveBeenCalled();
   });
 });
