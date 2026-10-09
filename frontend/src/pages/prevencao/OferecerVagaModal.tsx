@@ -8,8 +8,8 @@ import { formatDate, formatTelefone, formatTime } from '../../lib/format'
 
 const POR_PAGINA = 5
 
-type RemarcarModalProps = {
-  /** Consulta que será remarcada; null deixa o modal fechado. */
+type OferecerVagaModalProps = {
+  /** Consulta cujo horário será oferecido; null deixa o modal fechado. */
   consulta: ConsultaPrevencao | null
   carregando: boolean
   onClose: () => void
@@ -17,8 +17,8 @@ type RemarcarModalProps = {
   onConfirmar: (listaEsperaId: string) => void
 }
 
-/** Modal do "Remarcar": a recepção escolhe, na lista de espera do médico, quem vai receber o horário no WhatsApp. */
-export function RemarcarModal({ consulta, carregando, onClose, onConfirmar }: RemarcarModalProps) {
+/** Modal do "Oferecer vaga": a recepção escolhe, na lista de espera do médico, quem vai receber o horário no WhatsApp. */
+export function OferecerVagaModal({ consulta, carregando, onClose, onConfirmar }: OferecerVagaModalProps) {
   const [escolhida, setEscolhida] = useState<string | null>(null)
   const [pagina, setPagina] = useState(1)
 
@@ -38,7 +38,7 @@ export function RemarcarModal({ consulta, carregando, onClose, onConfirmar }: Re
   }
 
   return (
-    <Modal opened={consulta !== null} onClose={fechar} title="Remarcar consulta" centered>
+    <Modal opened={consulta !== null} onClose={fechar} title="Oferecer vaga" centered>
       {consulta && (
         <Stack gap="sm">
           <Text>

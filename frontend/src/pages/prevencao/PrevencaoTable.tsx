@@ -1,9 +1,8 @@
 import { Button, Group, Menu, Modal, Table, Text, Tooltip } from '@mantine/core'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { CalendarClock, CalendarPlus, ChevronDown, Copy, MessageCircle } from 'lucide-react'
+import { CalendarPlus, ChevronDown, Copy, MessageCircle } from 'lucide-react'
 import { alterarStatus } from '../../api/consultas'
-import { ApiError } from '../../api/http'
 import { enviarMensagem, oferecerVaga, type ConsultaPrevencao, type TipoMensagem } from '../../api/prevencao'
 import type { AgendamentoStatus } from '../../api/types'
 import { avisarErro, avisarSucesso } from '../../components/avisos'
@@ -15,7 +14,7 @@ import { StatusMenu } from '../../components/StatusMenu'
 import { formatDate, formatTelefone, formatTime } from '../../lib/format'
 import { STATUS_LABELS } from '../../lib/status'
 import classes from './PrevencaoTable.module.css'
-import { RemarcarModal } from './RemarcarModal'
+import { OferecerVagaModal } from './OferecerVagaModal'
 
 const MENSAGEM_LABEL: Record<TipoMensagem, string> = { confirmacao: 'Confirmação', lembrete: 'Lembrete' }
 
@@ -32,7 +31,7 @@ type PrevencaoTableProps = {
 export function PrevencaoTable({ itens, vazia }: PrevencaoTableProps) {
   const queryClient = useQueryClient()
   const [pendente, setPendente] = useState<AcaoPendente | null>(null)
-  const [remarcando, setRemarcando] = useState<ConsultaPrevencao | null>(null)
+  const [ofertando, setOfertando] = useState<ConsultaPrevencao | null>(null)
 
   const troca = useMutation({
     mutationFn: ({ consulta, novo }: { consulta: ConsultaPrevencao; novo: AgendamentoStatus }) =>
@@ -57,28 +56,14 @@ export function PrevencaoTable({ itens, vazia }: PrevencaoTableProps) {
     onError: (erro) => avisarErro('Não foi possível enviar a mensagem', erro.message),
   })
 
-  const vaga = useMutation({
-    mutationFn: (consulta: ConsultaPrevencao) => oferecerVaga(consulta.id),
-    onSuccess: () => {
-      avisarSucesso('Vaga oferecida', 'Mensagem enviada à lista de espera. Veja em localhost:8025.')
-    },
-    onError: (erro) => {
-      if (erro instanceof ApiError && erro.code === 'SEM_LISTA_DE_ESPERA') {
-        avisarErro('Lista de espera vazia', erro.message)
-      } else {
-        avisarErro('Não foi possível oferecer a vaga', erro.message)
-      }
-    },
-  })
-
-  const remarcar = useMutation({
+  const oferta = useMutation({
     mutationFn: ({ consulta, listaEsperaId }: { consulta: ConsultaPrevencao; listaEsperaId: string }) =>
       oferecerVaga(consulta.id, listaEsperaId),
     onSuccess: () => {
-      setRemarcando(null)
+      setOfertando(null)
       avisarSucesso('Conversa iniciada', 'Mensagem enviada à pessoa escolhida. Veja em localhost:8025.')
     },
-    onError: (erro) => avisarErro('Não foi possível remarcar', erro.message),
+    onError: (erro) => avisarErro('Não foi possível oferecer a vaga', erro.message),
   })
 
   /** Abre o modal de confirmação; a ação só roda quando a recepção clica em "Confirmar". */
@@ -120,9 +105,8 @@ export function PrevencaoTable({ itens, vazia }: PrevencaoTableProps) {
   /** O botão "Ações" fica carregando só na linha que está enviando mensagem ou oferecendo vaga. */
   function ocupada(consulta: ConsultaPrevencao): boolean {
     const enviandoMensagem = envio.isPending && envio.variables.consulta.id === consulta.id
-    const oferecendoVaga = vaga.isPending && vaga.variables.id === consulta.id
-    const remarcandoConsulta = remarcar.isPending && remarcar.variables.consulta.id === consulta.id
-    return enviandoMensagem || oferecendoVaga || remarcandoConsulta
+    const oferecendoVaga = oferta.isPending && oferta.variables.consulta.id === consulta.id
+    return enviandoMensagem || oferecendoVaga
   }
 
   return (
@@ -230,19 +214,11 @@ export function PrevencaoTable({ itens, vazia }: PrevencaoTableProps) {
                         </div>
                       </Tooltip>
                       <Menu.Item
-                        leftSection={<CalendarClock size={16} strokeWidth={1.75} />}
-                        onClick={() => setRemarcando(c)}
+                        leftSection={<CalendarPlus size={16} strokeWidth={1.75} />}
+                        onClick={() => setOfertando(c)}
                       >
-                        Remarcar
+                        Oferecer vaga
                       </Menu.Item>
-                      {c.risco.nivel === 'muito_alta' && (
-                        <Menu.Item
-                          leftSection={<CalendarPlus size={16} strokeWidth={1.75} />}
-                          onClick={() => pedirConfirmacao(c, 'Oferecer vaga', () => vaga.mutate(c))}
-                        >
-                          Oferecer vaga
-                        </Menu.Item>
-                      )}
                     </Menu.Dropdown>
                   </Menu>
                 </Table.Td>
@@ -260,11 +236,11 @@ export function PrevencaoTable({ itens, vazia }: PrevencaoTableProps) {
           )}
         </Table.Tbody>
       </Table>
-      <RemarcarModal
-        consulta={remarcando}
-        carregando={remarcar.isPending}
-        onClose={() => setRemarcando(null)}
-        onConfirmar={(listaEsperaId) => remarcando && remarcar.mutate({ consulta: remarcando, listaEsperaId })}
+      <OferecerVagaModal
+        consulta={ofertando}
+        carregando={oferta.isPending}
+        onClose={() => setOfertando(null)}
+        onConfirmar={(listaEsperaId) => ofertando && oferta.mutate({ consulta: ofertando, listaEsperaId })}
       />
       <Modal opened={pendente !== null} onClose={() => setPendente(null)} title="Confirmar ação" centered>
         <Text>{pendente?.descricao}</Text>

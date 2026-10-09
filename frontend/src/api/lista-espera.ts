@@ -1,7 +1,7 @@
 import { getJson, isJsonObject, postJson, type JsonObject } from './http'
 import type { Pagina } from './types'
 
-// Chamadas da API da lista de espera (/api/lista-espera): a tela Lista de espera e o modal "Remarcar".
+// Chamadas da API da lista de espera (/api/lista-espera): a tela Lista de espera e o modal "Oferecer vaga".
 
 /** Uma pessoa da lista de espera. */
 export type PessoaEspera = {
