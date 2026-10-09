@@ -167,16 +167,29 @@ lint, build e testes e, depois que tudo passava, eu mesmo revisava o que tinha s
 
 ## Telas
 
+O menu lateral tem dois grupos: **Agendamentos** (Indicadores, Prevenção de Faltas e Agendamentos) e
+**Parametrizações** (Médicos, Pacientes e Importações).
+
 - **Indicadores:** taxa de falta, consultas, faltas por médico, por dia e turno e por antecedência da
   marcação, comparando com o período anterior. O período vem de um atalho (30 dias, 3 meses, 12
   meses) ou de um intervalo personalizado escolhido no calendário.
+- **Prevenção de Faltas:** as consultas dos próximos 14 dias com risco de falta média ou maior, com
+  filtro por chance de faltar. Cada linha mostra o paciente (com o chip "faltoso", quando for o caso), o
+  médico, o horário, o status e a chance de faltar. O botão "Ações" de cada linha abre um menu com
+  enviar confirmação, enviar lembrete, copiar contato e, nas de risco muito alta, oferecer a vaga à
+  lista de espera; opções bloqueadas explicam o motivo num tooltip. O status é trocado ali mesmo, e o
+  banner "Como ler esta lista" explica os chips e a conta do risco.
 - **Agendamentos:** abas Hoje, Próximas, Aguardando registro (consultas que já passaram sem resultado)
   e Todas, com busca por paciente e filtros de status, médico e período (este só em Todas). O botão
   "Novo agendamento" abre um painel com médico, paciente, data e os horários livres; o status de cada
   consulta é trocado pelo menu da linha.
 - **Médicos:** os seis médicos com a especialidade e a grade de atendimento.
-- **Parametrizações › Pacientes:** pacientes com busca por nome, consultas concluídas e faltas.
+- **Parametrizações › Pacientes:** pacientes com busca por nome, consultas concluídas, faltas e o chip
+  "faltoso".
 - **Parametrizações › Importações:** histórico das importações, com o detalhe e as linhas descartadas.
+- **WhatsApp simulado** (http://localhost:8025, fora do menu): um chat por número de telefone na barra
+  lateral, com busca pelo número; ao clicar, mostra as mensagens daquele paciente. A página se atualiza
+  sozinha quando chega mensagem nova e não tem campo de resposta.
 
 ## Como rodar os testes
 
