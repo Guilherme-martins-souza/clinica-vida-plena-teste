@@ -136,4 +136,4 @@ Erro: 400 `DADOS_INVALIDOS` quando o corpo não segue o formato acima.
 ### GET /api/lista-espera
 
 Paginada (`{ itens, total, pagina, porPagina }`), da pessoa mais antiga para a mais nova, que é a ordem da oferta de vaga.
-Cada item tem os mesmos campos da resposta do `POST`. Ao subir com a coleção vazia, o backend grava 5 pessoas fictícias.
+Cada item tem os mesmos campos da resposta do `POST`. Ao rodar `npm run import`, a coleção é apagada e o backend grava 18 pessoas fictícias (3 para cada médico).

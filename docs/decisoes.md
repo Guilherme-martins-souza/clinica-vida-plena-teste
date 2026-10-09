@@ -377,9 +377,16 @@ Novas decisões entram no fim, numeradas.
 
 ### D62. Lista de espera e oferta de vaga
 
-- **Decisão:** a coleção `lista_espera` guarda nome, telefone (10 ou 11 dígitos), médico opcional, `antecipar` e a data de cadastro, sem tela de cadastro: só `POST /api/lista-espera` e `GET /api/lista-espera`. Se estiver vazia quando o backend sobe, grava 5 pessoas fictícias (2 com médico, 2 com `antecipar`). Nas linhas de risco muito alta e status `agendada`, a ação "Oferecer vaga" envia a mensagem 4 à pessoa mais antiga da espera do mesmo médico (ou sem médico definido). A oferta não muda o status da consulta nem tira a pessoa da fila; sem ninguém elegível responde 404 `SEM_LISTA_DE_ESPERA`. `antecipar` é só informativo.
+- **Decisão:** a coleção `lista_espera` guarda nome, telefone (10 ou 11 dígitos), médico opcional, `antecipar` e a data de cadastro. A API tem `POST /api/lista-espera` e `GET /api/lista-espera`, e a tela Lista de espera (D63) serve para cadastrar e ver. O `npm run import` (depois de uma importação concluída) apaga a coleção e grava 18 pessoas fictícias (3 para cada um dos 6 médicos, a terceira de cada um com `antecipar`). Nas linhas de risco muito alta, em qualquer status, a ação "Oferecer vaga" envia a mensagem 4 à pessoa mais antiga da espera do mesmo médico (ou sem médico definido). A oferta não muda o status da consulta nem tira a pessoa da fila; sem ninguém elegível responde 404 `SEM_LISTA_DE_ESPERA`. `antecipar` é só informativo.
 - **Por quê:** é a ideia do plano ("se der tempo") no tamanho mínimo: regra simples e explicável, sem depender da importação.
+- **Remarcar:** o menu "Ações" tem "Remarcar", que abre um modal com a lista de espera paginada (5 por página) de quem pediu exatamente aquele médico (`GET /api/lista-espera?medicoId=`), e avisa de que uma conversa por WhatsApp será iniciada. A recepção escolhe a pessoa e o envio usa `POST /api/consultas/:id/oferecer-vaga` com `listaEsperaId` (a mensagem 4, igual ao "Oferecer vaga"). Não muda a consulta nem a fila. Pessoa de outro médico ou sem médico definido responde 422 `PESSOA_DE_OUTRO_MEDICO`; id inexistente, 404 `PESSOA_NAO_ENCONTRADA`.
+- **Confirmação:** todas as opções do menu "Ações" abrem um modal (`Modal` do Mantine, sem biblioteca nova) com "Cancelar" e "Confirmar"; a ação só roda no segundo.
 - **Custo:** quem recebe a oferta continua na fila e pode receber a mesma vaga de novo; a clínica decide na mão. Não há aceite automático.
+
+### D63. Tela Lista de espera
+
+- **Decisão:** novo item "Lista de espera" no menu, logo abaixo de Agendamentos (rota `/lista-de-espera`). A tela tem a tabela paginada (10 por página, da mais antiga para a mais nova) e o botão "Adicionar na lista de espera", que abre um painel lateral como o de Novo agendamento. A pessoa vem de um seletor de pacientes (busca pelo nome, como no Novo agendamento) e a API recebe o nome e o telefone dele; paciente sem telefone é recusado na tela. Médico e "quer antecipar" (apenas informativo) são opcionais. O nome do médico na tabela vem de `GET /api/medicos`; sem médico aparece "Qualquer médico".
+- **Fora do escopo:** editar e remover pessoas da fila.
 
 ## Decisões pendentes (Parte 1 do desafio)
 

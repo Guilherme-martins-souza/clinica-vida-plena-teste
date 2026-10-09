@@ -24,11 +24,13 @@ Os dados não são importados ao subir: rode o comando de [Importação dos dado
 
 ## Importação dos dados
 
-Para limpar o banco e rodar a importação novamente rode:
+Para limpar o banco e rodar a importação rode:
 
 ```bash
 docker compose exec backend npm run import
 ```
+
+O comando também refaz a lista de espera: apaga as pessoas dela e grava 3 de exemplo para cada médico.
 
 **Detalhes da importação** podem ser verificados na tela de importações
 (http://localhost:5173/importacoes). Além disso, cada importação gera:
@@ -91,7 +93,9 @@ paciente, em quatro peças:
   De 25 a 49 pontos o risco é média, de 50 a 69 alta, de 70 em diante muito alta.
 - **Aba Prevenção de Faltas.** Lista as consultas dos próximos 14 dias com risco média ou maior, com
   filtro por nível, troca de status, envio de confirmação ou lembrete, cópia do telefone e, nas de
-  risco muito alta, "Oferecer vaga".
+  risco muito alta, "Oferecer vaga". Em qualquer consulta há também o botão "Remarcar", que abre a
+  lista de espera do médico para a recepção escolher quem avisar: a pessoa recebe o horário por
+  WhatsApp e a conversa é iniciada na hora.
 - **Mensagens automáticas por WhatsApp simulado.** Ao criar a consulta, o paciente recebe os dados e um
   link para salvar a consulta no seu Google Calendar; com 72 h ou menos recebe o pedido de confirmação e, com 36 h ou menos, o
   lembrete. O envio é simulado pelo serviço `whatsapp-mock`, que mostra tudo em
@@ -126,7 +130,8 @@ randomizado. Por isso trato o resultado como um indício, não como uma garantia
 ## Qual resultado espera?
 
 Sendo otimista, espero que a funcionalidade reduza mais de 50% das faltas, visto que também é
-disponibilizada a possibilidade de reagendar.
+disponibilizada a possibilidade de reagendar e a possibilidade de adicionar a consulta ao calendário
+do Google facilmente através do link.
 
 ## Como saber se funcionou em 3 meses
 
@@ -167,7 +172,7 @@ lint, build e testes e, depois que tudo passava, eu mesmo revisava o que tinha s
 
 ## Telas
 
-O menu lateral tem dois grupos: **Agendamentos** (Indicadores, Prevenção de Faltas e Agendamentos) e
+O menu lateral tem dois grupos: **Agendamentos** (Indicadores, Prevenção de Faltas, Agendamentos e Lista de espera) e
 **Parametrizações** (Médicos, Pacientes e Importações).
 
 - **Indicadores:** taxa de falta, consultas, faltas por médico, por dia e turno e por antecedência da
@@ -176,13 +181,18 @@ O menu lateral tem dois grupos: **Agendamentos** (Indicadores, Prevenção de Fa
 - **Prevenção de Faltas:** as consultas dos próximos 14 dias com risco de falta média ou maior, com
   filtro por chance de faltar. Cada linha mostra o paciente (com o chip "faltoso", quando for o caso), o
   médico, o horário, o status e a chance de faltar. O botão "Ações" de cada linha abre um menu com
-  enviar confirmação, enviar lembrete, copiar contato e, nas de risco muito alta, oferecer a vaga à
-  lista de espera; opções bloqueadas explicam o motivo num tooltip. O status é trocado ali mesmo, e o
+  enviar confirmação, enviar lembrete, copiar contato, remarcar (escolhendo a pessoa da lista de espera
+  do médico) e, nas de risco muito alta (em qualquer status),
+  oferecer a vaga à lista de espera; cada opção pede confirmação num modal, e as bloqueadas explicam o
+  motivo num tooltip. O status é trocado ali mesmo, e o
   banner "Como ler esta lista" explica os chips e a conta do risco.
 - **Agendamentos:** abas Hoje, Próximas, Aguardando registro (consultas que já passaram sem resultado)
   e Todas, com busca por paciente e filtros de status, médico e período (este só em Todas). O botão
   "Novo agendamento" abre um painel com médico, paciente, data e os horários livres; o status de cada
   consulta é trocado pelo menu da linha.
+- **Lista de espera:** tabela paginada de quem aguarda vaga (nome, telefone, médico, se quer antecipar
+  e desde quando). O botão "Adicionar na lista de espera" abre um painel com seletor de paciente,
+  médico (opcional) e se a pessoa quer antecipar uma consulta (apenas informativo).
 - **Médicos:** os seis médicos com a especialidade e a grade de atendimento.
 - **Parametrizações › Pacientes:** pacientes com busca por nome, consultas concluídas, faltas e o chip
   "faltoso".
