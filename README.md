@@ -150,7 +150,23 @@ vale 31,7%. Para não confundir com outras causas, olhe também:
 
 ## O que ficou de fora e os riscos
 
-TODO
+**O que ficou de fora**
+
+- **Efeito das respostas do paciente.** "1 - Confirmar", "2 - Remarcar" e "3 - Cancelar" aparecem nas
+  mensagens, mas a resposta ainda não muda a consulta.
+- **Multa e overbooking.** Pedidos pela Dra. Marta, ficaram de fora de propósito: a lista de espera
+  ocupa a vaga sem punir ninguém nem marcar dois pacientes no mesmo horário.
+- **LGPD.** Não há registro de consentimento do paciente para receber mensagens.
+
+**Riscos**
+
+- **Excesso de mensagens.** Quem tem risco alto pode receber confirmação, lembrete e ofertas, e passar a
+  ignorar todas.
+- **LGPD.** O sistema guarda nome e telefone, e o chip "faltoso" é um rótulo sobre a pessoa, que deve
+  ser usado só pela recepção.
+- **Dados do CSV.** Linhas duplicadas ou conflitantes foram descartadas, então os indicadores partem de
+  um conjunto menor que o original (o relatório da importação mostra quantas).
+- **Paciente sem telefone.** Não recebe nenhuma mensagem, e a recepção precisa ligar.
 
 ## Como usei IA e onde corrigi o que ela gerou
 
@@ -165,6 +181,8 @@ lint, build e testes e, depois que tudo passava, eu mesmo revisava o que tinha s
   variáveis de ambiente, tratamento central de erros e health check.
 - **Importação dos dados:** leitura e padronização do CSV, regras de duplicados, conflitos, descarte e
   correção, gravação em transação e relatório da importação.
+- **Pesquisa:** busca de estudos sobre faltas em consultas, que levou à base da funcionalidade (o
+  estudo sobre SMS com possibilidade de cancelar).
 - **Testes**
 - **Análises e documentação**
 
@@ -174,6 +192,13 @@ lint, build e testes e, depois que tudo passava, eu mesmo revisava o que tinha s
   o TypeScript 7 nos dois, para ficarem na mesma versão.
 - **Uso de `any`:** a IA usava `any` em várias ações (como o `err` do Express e o `res.json()`).
   Precisei ajustar para o modo `strict`, com a regra de nunca usar `any` garantida pelo lint.
+- **Mantine em vez das classes CSS do design system:** a IA recomendou usar as classes CSS do design
+  system. Decidi reproduzir o visual com o Mantine, usando só os tokens de cor.
+- **`tsx` em vez do watch nativo do Node:** a IA recomendou o watch nativo para o reload do backend.
+  Escolhi o `tsx`.
+- **Conflitos na importação dos dados:** a IA tentou, no início, importar o máximo possível dos
+  registros conflitantes do CSV. Pedi para importar só os que tínhamos certeza, e analisei todos os
+  cenários existentes um a um.
 
 ## Telas
 
