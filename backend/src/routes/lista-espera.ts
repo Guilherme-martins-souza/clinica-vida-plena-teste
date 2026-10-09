@@ -54,11 +54,17 @@ listaEsperaRouter.post('/', async (req, res) => {
 });
 
 // Lista paginada, da mais antiga para a mais nova (a ordem em que a oferta de vaga escolhe).
+// Com ?medicoId=MED01 traz só quem pediu exatamente esse médico.
 listaEsperaRouter.get('/', async (req, res) => {
   const paginacao = lerPaginacao(req.query);
+  const filtro = typeof req.query.medicoId === 'string' && req.query.medicoId ? { medicoId: req.query.medicoId } : {};
   const [pessoas, total] = await Promise.all([
-    ListaEspera.find().sort({ criadoEm: 1, _id: 1 }).skip(inicioDaPagina(paginacao)).limit(paginacao.porPagina).lean(),
-    ListaEspera.countDocuments(),
+    ListaEspera.find(filtro)
+      .sort({ criadoEm: 1, _id: 1 })
+      .skip(inicioDaPagina(paginacao))
+      .limit(paginacao.porPagina)
+      .lean(),
+    ListaEspera.countDocuments(filtro),
   ]);
 
   const pagina: Pagina<PessoaResposta> = { itens: pessoas.map(paraResposta), total, ...paginacao };

@@ -79,3 +79,20 @@ describe('GET /api/lista-espera', () => {
     expect(res.body.error.code).toBe('PAGINACAO_INVALIDA');
   });
 });
+
+describe('GET /api/lista-espera?medicoId=', () => {
+  it('traz só quem pediu exatamente esse médico, da mais antiga para a mais nova', async () => {
+    await ListaEspera.create([
+      { nome: 'Qualquer', telefone: '11900000001', medicoId: null, criadoEm: new Date('2026-10-01T10:00:00Z') },
+      { nome: 'Nova', telefone: '11900000002', medicoId: 'MED01', criadoEm: new Date('2026-10-03T10:00:00Z') },
+      { nome: 'Outro', telefone: '11900000003', medicoId: 'MED02', criadoEm: new Date('2026-10-02T10:00:00Z') },
+      { nome: 'Antiga', telefone: '11900000004', medicoId: 'MED01', criadoEm: new Date('2026-10-02T09:00:00Z') },
+    ]);
+
+    const res = await request(app).get('/api/lista-espera?medicoId=MED01');
+
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(2);
+    expect(res.body.itens.map((p: { nome: string }) => p.nome)).toEqual(['Antiga', 'Nova']);
+  });
+});

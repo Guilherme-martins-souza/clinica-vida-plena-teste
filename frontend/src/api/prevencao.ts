@@ -101,7 +101,10 @@ export async function enviarMensagem(consultaId: string, tipo: TipoMensagem): Pr
   await postJson(`/api/consultas/${encodeURIComponent(consultaId)}/mensagens`, { tipo })
 }
 
-/** Oferece o horário da consulta à primeira pessoa elegível da lista de espera. Sem ninguém, a API responde 404 SEM_LISTA_DE_ESPERA (ApiError). */
-export async function oferecerVaga(consultaId: string): Promise<void> {
-  await postJson(`/api/consultas/${encodeURIComponent(consultaId)}/oferecer-vaga`, {})
+/**
+ * Oferece o horário da consulta à pessoa da lista de espera indicada em `listaEsperaId` ou, sem ela, à primeira pessoa
+ * elegível. Sem ninguém, a API responde 404 SEM_LISTA_DE_ESPERA (ApiError).
+ */
+export async function oferecerVaga(consultaId: string, listaEsperaId?: string): Promise<void> {
+  await postJson(`/api/consultas/${encodeURIComponent(consultaId)}/oferecer-vaga`, { listaEsperaId })
 }

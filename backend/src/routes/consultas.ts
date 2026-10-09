@@ -117,8 +117,15 @@ consultasRouter.post('/:id/mensagens', async (req, res) => {
   res.json({ enviada: true });
 });
 
-// Oferece o horário desta consulta (risco muito alta) a quem está na lista de espera.
+const ofertaSchema = z.object({ listaEsperaId: z.string().min(1).optional() });
+
+// Oferece o horário desta consulta a quem está na lista de espera: a pessoa escolhida (`listaEsperaId`) ou, sem
+// ela, a mais antiga elegível.
 consultasRouter.post('/:id/oferecer-vaga', async (req, res) => {
-  await oferecerVaga(req.params.id);
+  const dados = ofertaSchema.safeParse(req.body ?? {});
+  if (!dados.success) {
+    throw new HttpError(400, 'DADOS_INVALIDOS', 'listaEsperaId deve ser o id de uma pessoa da lista de espera.');
+  }
+  await oferecerVaga(req.params.id, dados.data.listaEsperaId);
   res.json({ enviada: true });
 });
