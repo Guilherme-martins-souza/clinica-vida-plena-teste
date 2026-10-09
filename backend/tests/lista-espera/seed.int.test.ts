@@ -16,13 +16,14 @@ afterAll(async () => {
 });
 
 describe('semearListaEspera', () => {
-  it('coleção vazia: grava 5 pessoas, 2 com médico e 2 com antecipar', async () => {
+  it('coleção vazia: grava 3 pessoas para cada um dos 6 médicos', async () => {
     await semearListaEspera();
 
     const pessoas = await ListaEspera.find().lean();
-    expect(pessoas).toHaveLength(5);
-    expect(pessoas.filter((p) => p.medicoId !== null)).toHaveLength(2);
-    expect(pessoas.filter((p) => p.antecipar)).toHaveLength(2);
+    expect(pessoas).toHaveLength(18);
+    for (const medicoId of ['MED01', 'MED02', 'MED03', 'MED04', 'MED05', 'MED06']) {
+      expect(pessoas.filter((p) => p.medicoId === medicoId)).toHaveLength(3);
+    }
   });
 
   it('telefones fictícios válidos (o schema recusa os inválidos)', async () => {
@@ -38,7 +39,7 @@ describe('semearListaEspera', () => {
     await semearListaEspera();
     await semearListaEspera();
 
-    expect(await ListaEspera.countDocuments()).toBe(5);
+    expect(await ListaEspera.countDocuments()).toBe(18);
   });
 
   it('coleção com gente cadastrada não recebe o seed', async () => {

@@ -1,6 +1,9 @@
 // Comando `npm run import`: apaga médicos, pacientes e consultas e importa os arquivos do zero.
+// Também refaz a lista de espera: apaga e grava as pessoas de exemplo (3 por médico).
 import mongoose from 'mongoose';
 import { env } from '../config/env';
+import { semearListaEspera } from '../lista-espera/seed';
+import { ListaEspera } from '../models/lista-espera';
 import { executarImportacao } from './executar';
 
 async function main(): Promise<number> {
@@ -8,7 +11,11 @@ async function main(): Promise<number> {
   try {
     // O resumo da importação já é impresso por executarImportacao.
     const importacao = await executarImportacao({ origem: 'manual', dataDir: env.DATA_DIR });
-    return importacao.situacao === 'concluida' ? 0 : 1;
+    if (importacao.situacao !== 'concluida') return 1;
+    await ListaEspera.deleteMany({});
+    await semearListaEspera();
+    console.log('Lista de espera refeita com 3 pessoas de exemplo por médico.');
+    return 0;
   } finally {
     await mongoose.disconnect();
   }
