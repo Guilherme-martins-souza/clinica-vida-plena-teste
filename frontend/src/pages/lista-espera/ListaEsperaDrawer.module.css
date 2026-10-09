@@ -1,0 +1,65 @@
+/* Painel em coluna: cabeçalho e rodapé fixos, só o formulário rola. */
+.painel {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+}
+
+.cabecalho {
+  flex: none;
+  height: 4rem;
+  padding: 0 1rem 0 1.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.corpo {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.5rem;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.paciente {
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--mantine-radius-md);
+  background: var(--bg);
+}
+
+.paciente strong {
+  display: block;
+  font-weight: 600;
+}
+
+.paciente span {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.rodape {
+  flex: none;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 45em) {
+  .corpo {
+    padding: 1rem;
+  }
+
+  .rodape {
+    padding-inline: 1rem;
+  }
+}
