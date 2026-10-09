@@ -1,5 +1,7 @@
-import { Alert, Card, Grid, Group, SimpleGrid, Skeleton, Stack, Text, Title } from '@mantine/core'
+import { Alert, Button, Card, Flex, Grid, Group, SimpleGrid, Skeleton, Stack, Text, Title } from '@mantine/core'
+import { useMediaQuery } from '@mantine/hooks'
 import { useQuery } from '@tanstack/react-query'
+import { FilterX } from 'lucide-react'
 import { useSearchParams } from 'react-router'
 import { fetchIndicadores } from '../../api/indicadores'
 import type { ContagemFaltas, Indicadores } from '../../api/types'
@@ -54,6 +56,8 @@ export function IndicadoresPage() {
   // O período fica na URL (?periodo=3m ou ?periodo=personalizado&de=…&ate=…) para a tela poder ser compartilhada.
   const [searchParams, setSearchParams] = useSearchParams()
   const { atalho, periodo } = lerPeriodoDaUrl(searchParams)
+  // Mesmo corte do PeriodFilter: abaixo de 720px os controles ficam um embaixo do outro, na largura toda.
+  const isNarrow = useMediaQuery('(max-width: 45em)') ?? false
 
   const query = useQuery({
     queryKey: ['indicadores', toDataIso(periodo.de), toDataIso(periodo.ate)],
@@ -66,12 +70,24 @@ export function IndicadoresPage() {
         title="Indicadores"
         description="Faltas e comparecimento no período selecionado."
         actions={
-          <PeriodFilter
-            value={atalho}
-            periodo={periodo}
-            onChange={(v) => setSearchParams({ periodo: v })}
-            onChangeIntervalo={(de, ate) => setSearchParams({ periodo: 'personalizado', de, ate })}
-          />
+          <Flex gap="xs" direction={isNarrow ? 'column' : 'row'} w={isNarrow ? '100%' : undefined}>
+            <PeriodFilter
+              value={atalho}
+              periodo={periodo}
+              onChange={(v) => setSearchParams({ periodo: v })}
+              onChangeIntervalo={(de, ate) => setSearchParams({ periodo: 'personalizado', de, ate })}
+            />
+            {/* Limpar volta ao período padrão (12 meses); sem parâmetro na URL já é o padrão. */}
+            <Button
+              variant="default"
+              fullWidth={isNarrow}
+              leftSection={<FilterX size={16} strokeWidth={1.75} />}
+              onClick={() => setSearchParams({})}
+              disabled={!searchParams.has('periodo')}
+            >
+              Limpar filtros
+            </Button>
+          </Flex>
         }
       />
 
@@ -145,7 +161,7 @@ function IndicadoresConteudo({ dados }: { dados: Indicadores }) {
           hint={`${formatInteger(totais.canceladasPaciente)} pelo paciente · ${formatInteger(totais.canceladasClinica)} pela clínica`}
         />
         <StatCard
-          label="Consultas agendadas"
+          label="Consultas em aberto"
           value={formatInteger(totais.agendadas + totais.confirmadas)}
           hint={`${formatInteger(totais.agendadas)} agendadas · ${formatInteger(totais.confirmadas)} confirmadas`}
           info={
