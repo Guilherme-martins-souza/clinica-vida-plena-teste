@@ -55,3 +55,49 @@ describe('rotas de resposta', () => {
     expect((await request(app).post('/reply').send(valida)).status).toBe(404);
   });
 });
+
+describe('GET /?telefone=', () => {
+  beforeEach(limparMensagens);
+
+  it('abre o chat do telefone pedido', async () => {
+    await request(app)
+      .post('/messages')
+      .send({ ...valida, text: 'Para o primeiro' });
+    await request(app)
+      .post('/messages')
+      .send({ ...valida, to: '5511999990002', text: 'Para o segundo' });
+    const res = await request(app).get('/?telefone=5511999990001');
+    expect(res.text).toContain('<h2>5511999990001</h2>');
+    expect(res.text).toContain('Para o primeiro');
+    expect(res.text).not.toContain('<h2>5511999990002</h2>');
+  });
+});
+
+describe('GET /?q=', () => {
+  beforeEach(limparMensagens);
+
+  it('filtra os chats pelo número buscado', async () => {
+    await request(app).post('/messages').send(valida);
+    await request(app)
+      .post('/messages')
+      .send({ ...valida, to: '5511999990002', text: 'Outro paciente' });
+    const res = await request(app).get('/?q=0002');
+    expect(res.text).toContain('Outro paciente');
+    expect(res.text).not.toContain('Olá paciente');
+  });
+});
+
+describe('GET /status', () => {
+  beforeEach(limparMensagens);
+
+  it('devolve quantas mensagens existem', async () => {
+    expect((await request(app).get('/status')).body).toEqual({ total: 0 });
+    await request(app).post('/messages').send(valida);
+    expect((await request(app).get('/status')).body).toEqual({ total: 1 });
+  });
+
+  it('a página traz o mesmo total para comparar', async () => {
+    await request(app).post('/messages').send(valida);
+    expect((await request(app).get('/')).text).toContain('data-total="1"');
+  });
+});

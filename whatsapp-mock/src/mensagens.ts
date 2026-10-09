@@ -14,6 +14,10 @@ export type GrupoTelefone = { telefone: string; mensagens: Mensagem[] };
 // Fica só em memória: é uma demonstração, reiniciar o serviço apaga tudo.
 const mensagens: Mensagem[] = [];
 
+export function contarMensagens(): number {
+  return mensagens.length;
+}
+
 export function limparMensagens(): void {
   mensagens.length = 0;
 }
