@@ -57,7 +57,7 @@ usar numa carga futura.
 ## O que os dados mostraram
 
 As faltas se concentram em alguns momentos. Segunda de manhã (46,9% de faltas) e primeira consulta
-(36,9%) estão bem acima da média de 31,7%. O convênio quase não diferencia (32,0% contra 31,0%).
+(36,9%) estão bem acima da média de 31,7% (o Dr. Paulo tinha razão). O convênio quase não diferencia (32,0% contra 31,0%).
 Por isso o risco de falta é uma pontuação por fatores: é simples de explicar e de ajustar, e leva a
 recepção a agir em quem mais precisa em vez de avisar todos do mesmo jeito. O convênio, que pouco
 diferencia, tem o menor peso.
@@ -86,16 +86,18 @@ O enunciado deixa cinco perguntas em aberto. As respostas:
 ## O que foi construído na Parte 2
 
 Uma funcionalidade para reduzir as faltas, que tem como base formar uma comunicação bidirecional com o
-paciente, em quatro peças:
+paciente, em cinco peças:
 
-- **Risco de falta por consulta.** Uma soma de pontos: histórico de faltas (40), primeira consulta (25),
-  convênio (15), segunda-feira de manhã (15) e consulta ainda sem confirmação a menos de 48 h (20).
-  De 25 a 49 pontos o risco é média, de 50 a 69 alta, de 70 em diante muito alta.
+- **Risco de falta por consulta.** Uma soma de pontos, que pode ser verificada como ocorre na própria tela.
+  A Juliana não precisa mais ligar para todo mundo, porque todos são avisados por WhatsApp: ela vê
+  exatamente para quem ligar, que são os de risco alta ou muito alta que ainda não confirmaram.
 - **Aba Prevenção de Faltas.** Lista as consultas dos próximos 14 dias com risco média ou maior, com
-  filtro por nível, troca de status, envio de confirmação ou lembrete, cópia do telefone e, nas de
-  risco muito alta, "Oferecer vaga". Em qualquer consulta há também o botão "Remarcar", que abre a
-  lista de espera do médico para a recepção escolher quem avisar: a pessoa recebe o horário por
-  WhatsApp e a conversa é iniciada na hora.
+  filtro por nível, troca de status, envio de confirmação ou lembrete, cópia do telefone e, em
+  qualquer consulta, "Oferecer vaga", que abre a lista de espera do médico para a recepção escolher
+  quem avisar: a pessoa recebe o horário por WhatsApp e a conversa é iniciada na hora.
+- **Lista de espera.** Resposta à ideia da Dra. Marta (multa e overbooking), sem ser destrutiva: em vez
+  de punir quem falta ou marcar dois pacientes no mesmo horário, a vaga que ficaria vazia é oferecida a
+  quem está esperando. Tem tela própria para cadastrar as pessoas e alimenta o "Oferecer vaga".
 - **Mensagens automáticas por WhatsApp simulado.** Ao criar a consulta, o paciente recebe os dados e um
   link para salvar a consulta no seu Google Calendar; com 72 h ou menos recebe o pedido de confirmação e, com 36 h ou menos, o
   lembrete. O envio é simulado pelo serviço `whatsapp-mock`, que mostra tudo em
@@ -127,11 +129,14 @@ nem olham os SMS.
 É um estudo antes-e-depois em uma única clínica do Reino Unido, portanto mais fraco que um ensaio
 randomizado. Por isso trato o resultado como um indício, não como uma garantia para a Clínica Vida Plena.
 
-## Qual resultado espera?
+## Qual resultado espera? Quantas faltas deve evitar por mês
 
-Sendo otimista, espero que a funcionalidade reduza mais de 50% das faltas, visto que também é
-disponibilizada a possibilidade de reagendar e a possibilidade de adicionar a consulta ao calendário
-do Google facilmente através do link.
+O estudo citado reduziu as faltas em 42,8%. Além do que o estudo propõe, adicionei o link para salvar a
+consulta no Google Calendar e a possibilidade de remarcar, então acredito que a redução possa passar de
+50%.
+
+A média da clínica é de 152 faltas por mês (13 meses de dados; o mês com mais faltas teve 185). Metade
+disso dá em torno de 75, e é isso que espero evitar por mês.
 
 ## Como saber se funcionou em 3 meses
 
@@ -181,9 +186,8 @@ O menu lateral tem dois grupos: **Agendamentos** (Indicadores, Prevenção de Fa
 - **Prevenção de Faltas:** as consultas dos próximos 14 dias com risco de falta média ou maior, com
   filtro por chance de faltar. Cada linha mostra o paciente (com o chip "faltoso", quando for o caso), o
   médico, o horário, o status e a chance de faltar. O botão "Ações" de cada linha abre um menu com
-  enviar confirmação, enviar lembrete, copiar contato, remarcar (escolhendo a pessoa da lista de espera
-  do médico) e, nas de risco muito alta (em qualquer status),
-  oferecer a vaga à lista de espera; cada opção pede confirmação num modal, e as bloqueadas explicam o
+  enviar confirmação, enviar lembrete, copiar contato, oferecer vaga (escolhendo a pessoa da lista de
+  espera do médico); cada opção pede confirmação num modal, e as bloqueadas explicam o
   motivo num tooltip. O status é trocado ali mesmo, e o
   banner "Como ler esta lista" explica os chips e a conta do risco.
 - **Agendamentos:** abas Hoje, Próximas, Aguardando registro (consultas que já passaram sem resultado)
