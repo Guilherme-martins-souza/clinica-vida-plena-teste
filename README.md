@@ -156,14 +156,13 @@ vale 31,7%. Para não confundir com outras causas, olhe também:
   mensagens, mas a resposta ainda não muda a consulta.
 - **Multa e overbooking.** Pedidos pela Dra. Marta, ficaram de fora de propósito: a lista de espera
   ocupa a vaga sem punir ninguém nem marcar dois pacientes no mesmo horário.
-- **LGPD.** Não há registro de consentimento do paciente para receber mensagens.
+- **LGPD.** Não há registro de consentimento do paciente para receber mensagens. O sistema guarda nome
+  e telefone, e o chip "faltoso" é um rótulo sobre a pessoa, que deve ser usado só pela recepção.
 
 **Riscos**
 
 - **Excesso de mensagens.** Quem tem risco alto pode receber confirmação, lembrete e ofertas, e passar a
   ignorar todas.
-- **LGPD.** O sistema guarda nome e telefone, e o chip "faltoso" é um rótulo sobre a pessoa, que deve
-  ser usado só pela recepção.
 - **Dados do CSV.** Linhas duplicadas ou conflitantes foram descartadas, então os indicadores partem de
   um conjunto menor que o original (o relatório da importação mostra quantas).
 - **Paciente sem telefone.** Não recebe nenhuma mensagem, e a recepção precisa ligar.
